@@ -1,0 +1,79 @@
+version: "3.9"
+
+services:
+  morpheus:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: morpheus
+    restart: unless-stopped
+    ports:
+      - "7860:7860"
+    volumes:
+      - morpheus_data:/data
+    environment:
+      - APP_HOST=0.0.0.0
+      - APP_PORT=7860
+      - AUTH_ENABLED=true
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - SEARXNG_URL=http://searxng:8080
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_IN_PROCESS=false
+      - NTFY_URL=http://ntfy:80
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - searxng
+      - chromadb
+    networks:
+      - morpheus_net
+
+  searxng:
+    image: searxng/searxng:latest
+    container_name: morpheus_searxng
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    volumes:
+      - searxng_data:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    networks:
+      - morpheus_net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: morpheus_chromadb
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - morpheus_net
+
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    container_name: morpheus_ntfy
+    restart: unless-stopped
+    ports:
+      - "8082:80"
+    command: serve
+    networks:
+      - morpheus_net
+
+volumes:
+  morpheus_data:
+  searxng_data:
+  chroma_data:
+
+networks:
+  morpheus_net:
+    driver: bridge

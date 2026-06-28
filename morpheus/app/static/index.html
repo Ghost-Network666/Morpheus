@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Morpheus</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- xterm.js for terminal -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+</head>
+<body>
+<!-- Animated background canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- Login Overlay -->
+<div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;">
+  <div style="width:360px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:#fff">M</div>
+      <h1 style="font-size:24px">Morpheus</h1>
+      <p style="color:var(--text2);margin-top:4px">Sign in to continue</p>
+    </div>
+    <form id="login-form" class="card" style="display:flex;flex-direction:column;gap:14px">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="login-username" type="text" placeholder="admin" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="login-password" type="password" autocomplete="current-password">
+      </div>
+      <div id="login-error" style="color:var(--red);font-size:13px;min-height:16px"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">M</div>
+      <div class="logo-text">Morpheus</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-item" data-page="chat">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2.678 11.894a1 1 0 0 1 .287.801 10.97 10.97 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8.06 8.06 0 0 0 8 14c3.996 0 7-2.807 7-6 0-3.192-3.004-6-7-6S1 4.808 1 8c0 1.468.617 2.83 1.678 3.894zm-.493 3.905a21.682 21.682 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a9.68 9.68 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9.06 9.06 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105z"/></svg>
+        Chat
+      </div>
+      <div class="nav-item" data-page="terminal">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM3.854 4.146a.5.5 0 1 0-.708.708L4.793 6.5 3.146 8.146a.5.5 0 1 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2z"/><path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h12z"/></svg>
+        Terminal
+      </div>
+      <div class="nav-item" data-page="research">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+        Research
+      </div>
+      <div class="nav-item" data-page="documents">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0zM9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1z"/></svg>
+        Documents
+      </div>
+      <div class="nav-item" data-page="email">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/></svg>
+        Email
+      </div>
+      <div class="nav-item" data-page="notes">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.777.416L8 13.101l-5.223 2.815A.5.5 0 0 1 2 15.5V2zm2-1a1 1 0 0 0-1 1v12.566l4.723-2.482a.5.5 0 0 1 .554 0L13 14.566V2a1 1 0 0 0-1-1H4z"/></svg>
+        Notes
+      </div>
+      <div class="nav-item" data-page="tasks">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/><path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/></svg>
+        Tasks
+      </div>
+      <div class="nav-item" data-page="calendar">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+        Calendar
+      </div>
+      <div class="nav-item" data-page="cookbook">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>
+        Models
+      </div>
+      <div class="nav-item" data-page="connections">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5zm1.886 6.914L15 7.151V12.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V7.15l6.614 1.764a1.5 1.5 0 0 0 .772 0zM1.5 4h13a.5.5 0 0 1 .5.5v1.616L8.216 7.952a.5.5 0 0 1-.432 0L1 6.116V4.5a.5.5 0 0 1 .5-.5z"/></svg>
+        Connections
+      </div>
+      <div class="nav-item" data-page="settings">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.465l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"/></svg>
+        Settings
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="connector-widget">
+        <div class="connector-labels">
+          <span id="connector-local-label" class="connector-label active">Local</span>
+          <span id="connector-cloud-label" class="connector-label">Cloud</span>
+        </div>
+        <button id="connector-toggle" class="connector-toggle" title="Switch between local and cloud">
+          <span class="connector-knob"></span>
+        </button>
+        <div id="connector-status" class="connector-status">Ready</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Cloud Connect Popover (attached to sidebar footer) -->
+  <div id="cloud-popover" class="cloud-popover" style="display:none">
+    <div class="cloud-popover-title">Cloud Connection</div>
+    <div class="form-group">
+      <label class="form-label">Host</label>
+      <input id="cloud-host" placeholder="user@hostname or IP">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input id="cloud-user" placeholder="ubuntu">
+      </div>
+      <div class="form-group" style="max-width:70px">
+        <label class="form-label">Port</label>
+        <input id="cloud-port" value="22" type="number">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Auth</label>
+      <select id="cloud-auth-method">
+        <option value="key">SSH Key</option>
+        <option value="password">Password</option>
+      </select>
+    </div>
+    <div id="cloud-key-fields">
+      <div class="form-group">
+        <label class="form-label">Key path</label>
+        <input id="cloud-key-path" placeholder="~/.ssh/id_rsa">
+      </div>
+    </div>
+    <div id="cloud-pw-fields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input id="cloud-password" type="password">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button id="cloud-cancel-btn" class="btn btn-secondary btn-sm" style="flex:1">Cancel</button>
+      <button id="cloud-connect-btn" class="btn btn-primary btn-sm" style="flex:1">Connect</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main">
+    <!-- Header -->
+    <div id="header">
+      <span id="header-title" class="header-title">Morpheus</span>
+      <div class="header-spacer"></div>
+      <a id="tailscale-url" href="#" target="_blank" class="text-sm text-muted" style="display:none"></a>
+      <button id="logout-btn" class="btn-icon" title="Logout">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
+      </button>
+    </div>
+
+    <!-- Pages -->
+    <div id="content">
+
+      <!-- Chat -->
+      <div id="page-chat" class="page">
+        <div class="chat-sidebar">
+          <div class="chat-sidebar-header">
+            <button id="chat-new-btn" class="btn btn-primary" style="width:100%;justify-content:center">+ New Chat</button>
+          </div>
+          <div id="chat-session-list" class="chat-list"></div>
+        </div>
+        <div class="chat-main">
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-input-area">
+            <div class="chat-toolbar">
+              <select id="model-select" class="model-select"></select>
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2)">
+                <input type="checkbox" id="agent-toggle"> Agent mode
+              </label>
+              <div class="header-spacer"></div>
+              <button id="chat-delete-btn" class="btn-icon" title="Delete chat">
+                <svg viewBox="0 0 16 16" fill="currentColor" style="width:16px;height:16px"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5zm-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5z"/></svg>
+              </button>
+            </div>
+            <div class="chat-input-row">
+              <textarea id="chat-input" placeholder="Message Morpheus… (Enter to send, Shift+Enter for newline)" rows="1"></textarea>
+              <button id="chat-send-btn" class="btn btn-primary chat-send-btn">Send</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal -->
+      <div id="page-terminal" class="page">
+        <div class="terminal-container" id="terminal-pane" style="flex:1">
+          <!-- xterm injected by JS -->
+        </div>
+      </div>
+
+      <!-- Research -->
+      <div id="page-research" class="page">
+        <div style="padding:20px;border-bottom:1px solid var(--border)">
+          <form id="research-form" style="display:flex;gap:12px;align-items:flex-end">
+            <div class="form-group" style="flex:1;margin:0">
+              <label class="form-label">Research Topic</label>
+              <input id="research-topic" type="text" placeholder="e.g. Latest advances in quantum computing">
+            </div>
+            <div class="form-group" style="width:140px;margin:0">
+              <label class="form-label">Model</label>
+              <select id="research-model-select">
+                <option value="|ollama">Default (Ollama)</option>
+                <option value="gpt-4o|openai">GPT-4o</option>
+                <option value="claude-sonnet-4-6|anthropic">Claude Sonnet</option>
+              </select>
+            </div>
+            <div class="form-group" style="width:100px;margin:0">
+              <label class="form-label">Depth</label>
+              <input id="research-depth" type="number" value="3" min="1" max="10">
+            </div>
+            <button id="research-start-btn" type="submit" class="btn btn-primary">Research</button>
+          </form>
+        </div>
+        <div id="research-output" class="research-output">
+          <div class="empty-state" style="padding-top:64px">
+            <svg viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+            <p>Enter a topic above to start researching</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Documents -->
+      <div id="page-documents" class="page" style="flex-direction:row">
+        <div style="width:280px;min-width:280px;border-right:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:12px;border-bottom:1px solid var(--border)">
+            <div style="font-size:12px;color:var(--text2);margin-bottom:8px;font-family:var(--font-mono)" id="docs-path">/</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button id="docs-new-file-btn" class="btn btn-secondary btn-sm">+ File</button>
+              <button id="docs-new-folder-btn" class="btn btn-secondary btn-sm">+ Folder</button>
+              <button id="docs-upload-btn" class="btn btn-secondary btn-sm">↑ Upload</button>
+              <button id="docs-back-btn" class="btn btn-secondary btn-sm">← Back</button>
+              <input id="docs-upload-input" type="file" multiple style="display:none">
+            </div>
+          </div>
+          <div id="docs-file-list" style="flex:1;overflow-y:auto;padding:8px"></div>
+        </div>
+        <div id="docs-editor" style="flex:1;display:none;flex-direction:column;padding:16px;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span id="docs-editing-path" style="font-family:var(--font-mono);font-size:12px;color:var(--text2)"></span>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button id="docs-ai-btn" class="btn btn-secondary btn-sm">✨ AI Suggest</button>
+              <button id="docs-save-btn" class="btn btn-primary btn-sm">Save</button>
+            </div>
+          </div>
+          <textarea id="docs-editor-area" style="flex:1;font-family:var(--font-mono);font-size:13px;resize:none"></textarea>
+        </div>
+        <div id="docs-editor-empty" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3)">
+          Select a file to edit
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div id="page-email" class="page">
+        <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:center">
+          <select id="email-account-select" style="width:200px"></select>
+          <button id="email-fetch-btn" class="btn btn-secondary btn-sm">↓ Fetch</button>
+          <button id="email-triage-btn" class="btn btn-secondary btn-sm">✨ AI Triage</button>
+          <div style="margin-left:auto">
+            <button id="email-add-account-btn" class="btn btn-primary btn-sm">+ Account</button>
+          </div>
+        </div>
+        <div class="email-layout" style="flex:1;overflow:hidden">
+          <div id="email-list" class="email-list"></div>
+          <div id="email-detail" class="email-detail">
+            <div class="empty-state"><p>Select a message</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div id="page-notes" class="page">
+        <div class="notes-layout" style="flex:1;overflow:hidden">
+          <div style="display:flex;flex-direction:column;width:260px;min-width:260px;border-right:1px solid var(--border)">
+            <div style="padding:12px;border-bottom:1px solid var(--border);display:flex;gap:8px">
+              <button id="notes-new-btn" class="btn btn-primary btn-sm" style="flex:1;justify-content:center">+ New</button>
+              <button id="notes-delete-btn" class="btn btn-danger btn-sm">Delete</button>
+            </div>
+            <div id="notes-list" class="notes-list" style="flex:1"></div>
+          </div>
+          <div class="note-editor">
+            <input id="note-title" class="note-title-input" placeholder="Note title...">
+            <textarea id="note-content" class="note-content-input" placeholder="Write your note in Markdown..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks -->
+      <div id="page-tasks" class="page">
+        <div class="page-inner">
+          <div class="page-header">
+            <h2>Tasks</h2>
+            <div class="header-actions">
+              <button id="tasks-new-btn" class="btn btn-primary">+ New Task</button>
+            </div>
+          </div>
+          <div id="tasks-list"></div>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div id="page-calendar" class="page">
+        <div class="page-inner">
+          <div class="page-header">
+            <button id="cal-prev-btn" class="btn btn-secondary btn-sm">‹</button>
+            <h2 id="cal-month-title"></h2>
+            <button id="cal-next-btn" class="btn btn-secondary btn-sm">›</button>
+            <div class="header-actions">
+              <button id="cal-export-btn" class="btn btn-secondary btn-sm">Export .ics</button>
+              <button id="cal-new-btn" class="btn btn-primary">+ Event</button>
+            </div>
+          </div>
+          <div id="calendar-grid" class="calendar-grid"></div>
+        </div>
+      </div>
+
+      <!-- Models / Cookbook -->
+      <div id="page-cookbook" class="page">
+        <div class="page-inner">
+          <div class="page-header"><h2>Model Management</h2></div>
+
+          <!-- Hardware Stats -->
+          <div class="grid-3 mb-12">
+            <div class="card hw-stat"><div class="hw-stat-value" id="hw-ram">—</div><div class="hw-stat-label">RAM</div></div>
+            <div class="card hw-stat"><div class="hw-stat-value" id="hw-vram">—</div><div class="hw-stat-label">VRAM</div></div>
+            <div class="card hw-stat"><div class="hw-stat-value" id="hw-gpu" style="font-size:14px;padding-top:4px">—</div><div class="hw-stat-label">GPU</div></div>
+          </div>
+
+          <!-- Download form -->
+          <div class="card mb-12">
+            <div class="card-header">Download Model</div>
+            <form id="download-model-form" style="display:flex;gap:12px">
+              <input id="download-model-input" placeholder="e.g. llama3.2:3b" style="flex:1">
+              <button type="submit" class="btn btn-primary">Pull</button>
+            </form>
+            <div id="download-log" class="log-output mt-12" style="display:none"></div>
+          </div>
+
+          <!-- Recommendations -->
+          <div class="card mb-12">
+            <div class="card-header">Recommendations for your hardware</div>
+            <div id="model-recommendations" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+
+          <!-- Installed models -->
+          <div class="card">
+            <div class="card-header">Installed Models</div>
+            <div id="installed-models" style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connections -->
+      <div id="page-connections" class="page">
+        <div class="page-inner" style="max-width:900px">
+          <div class="page-header">
+            <h2>Connections</h2>
+            <div class="header-actions">
+              <button id="backup-btn" class="btn btn-secondary btn-sm">Backup data</button>
+            </div>
+          </div>
+          <!-- Provider grid injected by JS -->
+          <div id="connections-grid"></div>
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div id="page-settings" class="page">
+        <div class="page-inner" style="max-width:760px">
+
+          <div class="page-header">
+            <h2>Settings</h2>
+            <div class="header-actions">
+              <button id="settings-save-btn" class="btn btn-primary">Save Changes</button>
+            </div>
+          </div>
+
+          <!-- .env setup banner (shown only when .env is missing) -->
+          <div id="env-banner" style="display:none" class="env-banner">
+            <div class="env-banner-icon">📄</div>
+            <div>
+              <div style="font-weight:600;margin-bottom:3px">Set up your <code>.env</code> file to persist settings across restarts</div>
+              <div style="font-size:12px;color:var(--text2)">In your <code>morpheus/</code> folder, rename <code>.env.example</code> → <code>.env</code>. Settings you save here are automatically written to it.</div>
+            </div>
+            <button id="env-banner-dismiss" class="btn-icon" title="Dismiss">✕</button>
+          </div>
+
+          <!-- Appearance -->
+          <div class="settings-section">
+            <div class="settings-section-title">Appearance</div>
+            <div class="form-label" style="margin-bottom:8px">Theme</div>
+            <div id="theme-picker"></div>
+            <div class="form-label" style="margin:16px 0 8px">Animated Background</div>
+            <div id="bg-picker"></div>
+            <div class="toggle-row" style="margin-top:16px">
+              <div><div class="toggle-label">Density</div><div class="toggle-desc">UI spacing and font size</div></div>
+              <select id="density-select" style="width:140px">
+                <option value="compact">Compact</option>
+                <option value="comfortable" selected>Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- AI Providers -->
+          <div class="settings-section">
+            <div class="settings-section-title">AI Providers</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Default Model</label>
+                <input id="setting-default-model" placeholder="llama3.2:3b">
+              </div>
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">Default Provider</label>
+                <select id="setting-default-provider">
+                  <option value="ollama">Ollama</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ollama URL</label>
+              <input id="setting-ollama-url" placeholder="http://localhost:11434">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">OpenAI API Key</label>
+                <input id="setting-openai-key" type="password" placeholder="sk-…">
+              </div>
+              <div class="form-group">
+                <label class="form-label">OpenAI Base URL <span class="text-muted text-sm">(custom endpoint)</span></label>
+                <input id="setting-openai-base-url" placeholder="https://api.openai.com/v1">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Anthropic API Key</label>
+              <input id="setting-anthropic-key" type="password" placeholder="sk-ant-…">
+            </div>
+          </div>
+
+          <!-- Search -->
+          <div class="settings-section">
+            <div class="settings-section-title">Search</div>
+            <div class="form-group">
+              <label class="form-label">SearXNG URL <span class="text-muted text-sm">(self-hosted, first priority)</span></label>
+              <input id="setting-searxng-url" placeholder="http://localhost:8888">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Brave Search API Key</label>
+                <input id="setting-brave-key" type="password" placeholder="BSA…">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tavily API Key</label>
+                <input id="setting-tavily-key" type="password" placeholder="tvly-…">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Google PSE Key</label>
+                <input id="setting-google-pse-key" type="password" placeholder="AIza…">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Google PSE CX</label>
+                <input id="setting-google-pse-cx" placeholder="Search engine ID">
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="settings-section">
+            <div class="settings-section-title">Notifications</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">ntfy URL</label>
+                <input id="setting-ntfy-url" placeholder="http://localhost:8080">
+              </div>
+              <div class="form-group" style="max-width:160px">
+                <label class="form-label">ntfy Topic</label>
+                <input id="setting-ntfy-topic" placeholder="morpheus">
+              </div>
+            </div>
+          </div>
+
+          <!-- Auth -->
+          <div class="settings-section">
+            <div class="settings-section-title">Auth &amp; Security</div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Require Login</div>
+                <div class="toggle-desc">Enable username/password authentication</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="setting-auth-enabled"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Session Duration</div>
+                <div class="toggle-desc">Days before login expires</div>
+              </div>
+              <input id="setting-session-days" type="number" min="1" max="365" style="width:80px">
+            </div>
+            <div class="form-group" style="margin-top:8px">
+              <label class="form-label">Trusted Networks <span class="text-muted text-sm">(bypass auth)</span></label>
+              <input id="setting-trusted-lan" placeholder="127.0.0.1/8,::1">
+            </div>
+            <div class="settings-section-title" style="margin-top:20px">Change Password</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Current Password</label>
+                <input id="setting-pw-current" type="password" autocomplete="current-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label">New Password</label>
+                <input id="setting-pw-new" type="password" autocomplete="new-password">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Confirm</label>
+                <input id="setting-pw-confirm" type="password" autocomplete="new-password">
+              </div>
+            </div>
+            <button id="settings-pw-btn" class="btn btn-secondary btn-sm">Update Password</button>
+          </div>
+
+          <!-- Server -->
+          <div class="settings-section">
+            <div class="settings-section-title">Server <span class="text-muted text-sm">(restart required)</span></div>
+            <div class="form-row">
+              <div class="form-group" style="max-width:120px">
+                <label class="form-label">Port</label>
+                <input id="setting-app-port" type="number" placeholder="7860">
+              </div>
+              <div class="form-group" style="align-self:flex-end;padding-bottom:1px">
+                <div class="toggle-row" style="border:none;padding:0">
+                  <div><div class="toggle-label">Debug Mode</div></div>
+                  <label class="toggle" style="margin-left:12px"><input type="checkbox" id="setting-app-debug"><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RAG / ChromaDB -->
+          <div class="settings-section">
+            <div class="settings-section-title">RAG / ChromaDB</div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">In-Process ChromaDB</div>
+                <div class="toggle-desc">Run ChromaDB inside Morpheus (no external server needed)</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="setting-chroma-in-process"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="form-row" style="margin-top:10px">
+              <div class="form-group">
+                <label class="form-label">ChromaDB Host</label>
+                <input id="setting-chroma-host" placeholder="localhost">
+              </div>
+              <div class="form-group" style="max-width:100px">
+                <label class="form-label">Port</label>
+                <input id="setting-chroma-port" type="number" placeholder="8000">
+              </div>
+            </div>
+          </div>
+
+          <!-- Modules -->
+          <div class="settings-section">
+            <div class="settings-section-title">Modules</div>
+            <div class="grid-2">
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Terminal</div></div><label class="toggle"><input type="checkbox" id="toggle-terminal"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">SSH</div></div><label class="toggle"><input type="checkbox" id="toggle-ssh"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Agent</div></div><label class="toggle"><input type="checkbox" id="toggle-agent"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">RAG</div></div><label class="toggle"><input type="checkbox" id="toggle-rag"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Email</div></div><label class="toggle"><input type="checkbox" id="toggle-email"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Calendar</div></div><label class="toggle"><input type="checkbox" id="toggle-calendar"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Notes</div></div><label class="toggle"><input type="checkbox" id="toggle-notes"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Tasks</div></div><label class="toggle"><input type="checkbox" id="toggle-tasks"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Research</div></div><label class="toggle"><input type="checkbox" id="toggle-research"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Documents</div></div><label class="toggle"><input type="checkbox" id="toggle-documents"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Cookbook</div></div><label class="toggle"><input type="checkbox" id="toggle-cookbook"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Connections</div></div><label class="toggle"><input type="checkbox" id="toggle-connections"><span class="toggle-slider"></span></label></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- Modals -->
+
+<!-- Task Modal -->
+<div id="task-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">New Task</div>
+    <form id="task-modal-form">
+      <div class="form-group"><label class="form-label">Title</label><input id="task-title-input" required placeholder="Task title..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Priority</label>
+          <select id="task-priority-input"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Due Date</label><input id="task-due-input" type="datetime-local"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="task-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Calendar Event Modal -->
+<div id="event-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">New Event</div>
+    <form id="event-modal-form">
+      <div class="form-group"><label class="form-label">Summary</label><input id="event-summary-input" required placeholder="Event title..."></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Start</label><input id="event-start-input" type="datetime-local" required></div>
+        <div class="form-group"><label class="form-label">End</label><input id="event-end-input" type="datetime-local" required></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="event-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add SSH Modal -->
+<div id="add-ssh-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add SSH Profile</div>
+    <form id="add-ssh-form">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Label</label><input id="ssh-label" required placeholder="My Server"></div>
+        <div class="form-group"><label class="form-label">Auth Type</label>
+          <select id="ssh-auth_type"><option value="password">Password</option><option value="key">Private Key</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Host</label><input id="ssh-host" required placeholder="192.168.1.100"></div>
+        <div class="form-group" style="width:100px"><label class="form-label">Port</label><input id="ssh-port" value="22"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Username</label><input id="ssh-username" required placeholder="ubuntu"></div>
+      <div class="form-group"><label class="form-label">Password / Passphrase</label><input id="ssh-password" type="password"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="add-ssh-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Account Modal -->
+<div id="add-account-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add Email Account</div>
+    <form id="add-account-form">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Label</label><input id="account-label" placeholder="Gmail"></div>
+        <div class="form-group"><label class="form-label">Email</label><input id="account-email" type="email" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">IMAP Host</label><input id="account-imap_host" required placeholder="imap.gmail.com"></div>
+        <div class="form-group" style="width:100px"><label class="form-label">Port</label><input id="account-imap_port" value="993"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">SMTP Host</label><input id="account-smtp_host" required placeholder="smtp.gmail.com"></div>
+        <div class="form-group" style="width:100px"><label class="form-label">Port</label><input id="account-smtp_port" value="587"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Password / App Password</label><input id="account-password" type="password" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="add-account-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Vault Item Modal -->
+<div id="add-vault-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add Secret</div>
+    <form id="add-vault-form">
+      <div class="form-group"><label class="form-label">Key</label><input id="vault-key" required placeholder="OPENAI_API_KEY"></div>
+      <div class="form-group"><label class="form-label">Value</label><input id="vault-value" type="password" required placeholder="sk-..."></div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select id="vault-category"><option value="api_key">API Key</option><option value="password">Password</option><option value="general">General</option></select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="add-vault-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Add Token Modal -->
+<div id="add-token-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Create API Token</div>
+    <form id="add-token-form">
+      <div class="form-group"><label class="form-label">Token Name</label><input id="token-name" required placeholder="my-app"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" data-close-modal="add-token-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

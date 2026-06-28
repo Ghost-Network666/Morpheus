@@ -1,0 +1,16 @@
+from sqlalchemy import String, ForeignKey, DateTime, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime, timezone
+from app.database import Base
+
+
+class UserSetting(Base):
+    __tablename__ = "user_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    key: Mapped[str] = mapped_column(String(256))
+    value: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    user = relationship("User", back_populates="settings")
