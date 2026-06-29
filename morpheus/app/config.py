@@ -72,13 +72,44 @@ class Settings(BaseSettings):
     # Data directory
     data_dir: str = Field("data", env="DATA_DIR")
 
+    # Database — set DATABASE_URL to a postgres DSN to use PostgreSQL instead of SQLite
+    database_url_override: Optional[str] = Field(None, env="DATABASE_URL")
+
+    # Obsidian vault
+    obsidian_vault_path: Optional[str] = Field(None, env="OBSIDIAN_VAULT_PATH")
+    module_obsidian: bool = Field(True, env="MODULE_OBSIDIAN")
+
+    # Discovery
+    discovery_mdns: bool = Field(True, env="DISCOVERY_MDNS")
+    discovery_tailscale: bool = Field(True, env="DISCOVERY_TAILSCALE")
+
+    # Updates
+    update_check: bool = Field(True, env="UPDATE_CHECK")
+
     @property
     def database_url(self) -> str:
+        if self.database_url_override:
+            raw = self.database_url_override
+            # Convert sync postgres:// → async asyncpg driver
+            if raw.startswith("postgresql://"):
+                return raw.replace("postgresql://", "postgresql+asyncpg://", 1)
+            if raw.startswith("postgres://"):
+                return raw.replace("postgres://", "postgresql+asyncpg://", 1)
+            return raw
         return f"sqlite+aiosqlite:///{self.data_dir}/app.db"
 
     @property
     def database_url_sync(self) -> str:
+        if self.database_url_override:
+            raw = self.database_url_override
+            if raw.startswith("postgresql+asyncpg://"):
+                return raw.replace("postgresql+asyncpg://", "postgresql://", 1)
+            return raw
         return f"sqlite:///{self.data_dir}/app.db"
+
+    @property
+    def is_postgres(self) -> bool:
+        return "postgresql" in self.database_url or "postgres" in self.database_url
 
     @property
     def trusted_cidrs(self) -> list[str]:

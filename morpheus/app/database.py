@@ -4,12 +4,16 @@ from app.config import settings
 import os
 
 
-os.makedirs(settings.data_dir, exist_ok=True)
+if not settings.is_postgres:
+    os.makedirs(settings.data_dir, exist_ok=True)
+
+# SQLite needs check_same_thread=False; PostgreSQL does not accept that arg
+_connect_args = {} if settings.is_postgres else {"check_same_thread": False}
 
 engine = create_async_engine(
     settings.database_url,
     echo=settings.app_debug,
-    connect_args={"check_same_thread": False},
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(

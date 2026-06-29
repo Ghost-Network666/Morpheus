@@ -11,12 +11,15 @@ const THEMES = [
   { id: "dracula",     label: "Dracula",     color: "#ff79c6" },
   { id: "nord",        label: "Nord",        color: "#88c0d0" },
   { id: "solarized",   label: "Solarized",   color: "#268bd2" },
+  { id: "cyberpunk",   label: "Cyberpunk",   color: "#ff00aa" },
+  { id: "rose-pine",   label: "Rose Pine",   color: "#eb6f92" },
+  { id: "hacker",      label: "Hacker",      color: "#00ff41" },
   { id: "light",       label: "Light",       color: "#0d6efd" },
 ];
 
 const BG_ICONS = { dots: "✦", constellation: "✧", rain: "⌨", flow: "〰", none: "○" };
 
-const MODULES = ["terminal","ssh","agent","rag","email","calendar","notes","tasks","research","documents","cookbook","connections"];
+const MODULES = ["terminal","ssh","agent","rag","email","calendar","notes","tasks","research","documents","cookbook","connections","obsidian"];
 
 export async function initSettings() {
   try {
@@ -47,6 +50,7 @@ function _render() {
   _renderThemePicker();
   _renderBgPicker();
   _renderDensityPicker();
+  _renderAccentPicker();
   _renderFields();
   _renderModules();
   _wireButtons();
@@ -97,6 +101,32 @@ function _renderDensityPicker() {
   if (!sel) return;
   sel.value = localStorage.getItem("morpheus_density") || "comfortable";
   sel.addEventListener("change", () => applyDensity(sel.value));
+}
+
+function _renderAccentPicker() {
+  const container = document.getElementById("accent-picker");
+  if (!container) return;
+  const saved = localStorage.getItem("morpheus_accent") || "";
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px">
+      <input type="color" id="accent-color-input" value="${saved || "#e06c75"}"
+        style="width:40px;height:32px;border:none;background:none;padding:0;cursor:pointer;border-radius:6px">
+      <span style="font-size:13px;color:var(--text2)" id="accent-color-label">${saved ? saved : "Theme default"}</span>
+      <button class="btn btn-secondary btn-sm" id="accent-reset-btn">Reset</button>
+    </div>
+  `;
+  document.getElementById("accent-color-input")?.addEventListener("input", e => {
+    applyAccent(e.target.value);
+    const label = document.getElementById("accent-color-label");
+    if (label) label.textContent = e.target.value;
+  });
+  document.getElementById("accent-reset-btn")?.addEventListener("click", () => {
+    applyAccent(null);
+    const input = document.getElementById("accent-color-input");
+    const label = document.getElementById("accent-color-label");
+    if (input) input.value = "#e06c75";
+    if (label) label.textContent = "Theme default";
+  });
 }
 
 // ── All text / select / checkbox fields ──────────────────────────────────────
@@ -253,4 +283,31 @@ export function applyTheme(theme) {
 export function applyDensity(density) {
   document.documentElement.setAttribute("data-density", density);
   localStorage.setItem("morpheus_density", density);
+}
+
+export function applyAccent(color) {
+  const root = document.documentElement;
+  if (!color) {
+    root.removeAttribute("data-accent-custom");
+    root.style.removeProperty("--accent-custom");
+    root.style.removeProperty("--accent-custom2");
+    root.style.removeProperty("--accent-custom-glow");
+    root.style.removeProperty("--accent");
+    root.style.removeProperty("--accent2");
+    root.style.removeProperty("--accent-glow");
+    root.style.removeProperty("--user-bubble-bg");
+    localStorage.removeItem("morpheus_accent");
+  } else {
+    // Derive a darker shade for accent2 by blending with black
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.slice(0,2),16), g = parseInt(hex.slice(2,4),16), b = parseInt(hex.slice(4,6),16);
+    const r2 = Math.round(r * 0.75), g2 = Math.round(g * 0.75), b2 = Math.round(b * 0.75);
+    const accent2 = `#${r2.toString(16).padStart(2,"0")}${g2.toString(16).padStart(2,"0")}${b2.toString(16).padStart(2,"0")}`;
+    const glow = `rgba(${r},${g},${b},0.25)`;
+    root.style.setProperty("--accent", color);
+    root.style.setProperty("--accent2", accent2);
+    root.style.setProperty("--accent-glow", glow);
+    root.style.setProperty("--user-bubble-bg", color);
+    localStorage.setItem("morpheus_accent", color);
+  }
 }

@@ -81,7 +81,7 @@ async function navigate(page) {
     chat: "Chat", terminal: "Terminal", research: "Research",
     documents: "Documents", email: "Email", notes: "Notes",
     tasks: "Tasks", calendar: "Calendar", connections: "Connections",
-    settings: "Settings", cookbook: "Models",
+    settings: "Settings", cookbook: "Models", obsidian: "Obsidian Vault",
   };
   const headerTitle = document.getElementById("header-title");
   if (headerTitle) headerTitle.textContent = titles[page] || "Morpheus";
@@ -149,6 +149,11 @@ async function initPage(page) {
       initSettings();
       break;
     }
+    case "obsidian": {
+      const { initObsidian } = await import("./modules/obsidian.js");
+      initObsidian();
+      break;
+    }
   }
 }
 
@@ -204,7 +209,7 @@ async function init() {
       terminal: "terminal", ssh: "connections", agent: "chat",
       email: "email", calendar: "calendar", notes: "notes",
       tasks: "tasks", research: "research", documents: "documents",
-      cookbook: "cookbook", connections: "connections",
+      cookbook: "cookbook", connections: "connections", obsidian: "obsidian",
     };
     for (const [mod, navPage] of Object.entries(moduleMap)) {
       if (_sysInfo.modules[mod] === false) {
@@ -215,10 +220,12 @@ async function init() {
     console.warn("System info unavailable:", e.message);
   }
 
-  // Apply saved theme + density
-  const { applyTheme, applyDensity } = await import("./settings.js");
+  // Apply saved theme, density, and accent
+  const { applyTheme, applyDensity, applyAccent } = await import("./settings.js");
   applyTheme(localStorage.getItem("morpheus_theme") || "one-dark");
   applyDensity(localStorage.getItem("morpheus_density") || "comfortable");
+  const savedAccent = localStorage.getItem("morpheus_accent");
+  if (savedAccent) applyAccent(savedAccent);
 
   // Init animated background
   initBackground();
@@ -257,6 +264,47 @@ async function init() {
     const page = location.hash.replace("#/", "") || "chat";
     navigate(page);
   });
+
+  // WebSocket real-time sync
+  _connectSync();
+}
+
+function _connectSync() {
+  const indicator = document.getElementById("sync-indicator");
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  let ws, retryDelay = 2000;
+
+  function connect() {
+    ws = new WebSocket(`${proto}://${location.host}/ws/sync`);
+    ws.addEventListener("open", () => {
+      if (indicator) { indicator.classList.add("connected"); indicator.title = "Live sync active"; }
+      retryDelay = 2000;
+      setInterval(() => ws.readyState === WebSocket.OPEN && ws.send("ping"), 25000);
+    });
+    ws.addEventListener("close", () => {
+      if (indicator) indicator.classList.remove("connected");
+      setTimeout(connect, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30000);
+    });
+    ws.addEventListener("message", (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type !== "pong") _handleSyncEvent(msg);
+      } catch { /* ignore */ }
+    });
+  }
+  connect();
+}
+
+function _handleSyncEvent(msg) {
+  // Refresh the current page data when a sync event arrives for it
+  const pageHandlers = {
+    notes_changed:    () => _initializedPages.has("notes")    && import("./modules/notes.js").then(m => m.initNotes && null),
+    tasks_changed:    () => _initializedPages.has("tasks")    && import("./modules/tasks.js").then(m => m.reloadTasks?.()),
+    calendar_changed: () => _initializedPages.has("calendar") && import("./modules/calendar.js").then(m => m.reloadCalendar?.()),
+    vault_changed:    () => _initializedPages.has("obsidian") && import("./modules/obsidian.js").then(m => m.reloadNotes?.()),
+  };
+  pageHandlers[msg.type]?.();
 }
 
 

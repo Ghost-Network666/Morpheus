@@ -87,6 +87,10 @@
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"/></svg>
         Models
       </div>
+      <div class="nav-item" data-page="obsidian">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v5A1.5 1.5 0 0 0 3 14h10a1.5 1.5 0 0 0 1.5-1.5v-5a.5.5 0 0 0-.146-.354l-6-6zm0 0L3.5 5.5m4.854-4.354L12.5 5.5M8 8.5v4m-2-2h4"/></svg>
+        Obsidian
+      </div>
       <div class="nav-item" data-page="connections">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6.5 1A1.5 1.5 0 0 0 5 2.5V3H1.5A1.5 1.5 0 0 0 0 4.5v8A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 14.5 3H11v-.5A1.5 1.5 0 0 0 9.5 1h-3zm0 1h3a.5.5 0 0 1 .5.5V3H6v-.5a.5.5 0 0 1 .5-.5zm1.886 6.914L15 7.151V12.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V7.15l6.614 1.764a1.5 1.5 0 0 0 .772 0zM1.5 4h13a.5.5 0 0 1 .5.5v1.616L8.216 7.952a.5.5 0 0 1-.432 0L1 6.116V4.5a.5.5 0 0 1 .5-.5z"/></svg>
         Connections
@@ -159,6 +163,7 @@
       <span id="header-title" class="header-title">Morpheus</span>
       <div class="header-spacer"></div>
       <a id="tailscale-url" href="#" target="_blank" class="text-sm text-muted" style="display:none"></a>
+      <div id="sync-indicator" class="sync-indicator" title="Connecting to sync…"></div>
       <button id="logout-btn" class="btn-icon" title="Logout">
         <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
       </button>
@@ -375,6 +380,34 @@
         </div>
       </div>
 
+      <!-- Obsidian Vault -->
+      <div id="page-obsidian" class="page" style="flex-direction:row">
+        <div style="width:280px;min-width:280px;border-right:1px solid var(--border);display:flex;flex-direction:column">
+          <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;gap:6px">
+            <input id="obsidian-search" placeholder="Search notes…" style="flex:1">
+          </div>
+          <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;gap:6px">
+            <button id="obsidian-new-btn" class="btn btn-primary btn-sm" style="flex:1">+ New</button>
+            <button id="obsidian-sync-btn" class="btn btn-secondary btn-sm">Sync</button>
+          </div>
+          <div id="obsidian-note-list" style="flex:1;overflow-y:auto"></div>
+        </div>
+        <div id="obsidian-empty-panel" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3)">
+          Select a note to edit
+        </div>
+        <div id="obsidian-editor-panel" style="flex:1;display:none;flex-direction:column">
+          <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <span id="obsidian-active-path" style="font-family:var(--font-mono);font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+            <button id="obsidian-edit-btn" class="btn btn-secondary btn-sm active">Edit</button>
+            <button id="obsidian-preview-btn" class="btn btn-secondary btn-sm">Preview</button>
+            <button id="obsidian-save-btn" class="btn btn-primary btn-sm">Save</button>
+            <button id="obsidian-delete-btn" class="btn btn-danger btn-sm">Delete</button>
+          </div>
+          <textarea id="obsidian-editor-area" style="flex:1;font-family:var(--font-mono);font-size:13px;resize:none;border:none;background:var(--bg2);color:var(--text);padding:16px;outline:none"></textarea>
+          <div id="obsidian-preview" class="markdown-body" style="display:none;flex:1;overflow-y:auto;padding:20px 28px"></div>
+        </div>
+      </div>
+
       <!-- Connections -->
       <div id="page-connections" class="page">
         <div class="page-inner" style="max-width:900px">
@@ -415,6 +448,8 @@
             <div class="settings-section-title">Appearance</div>
             <div class="form-label" style="margin-bottom:8px">Theme</div>
             <div id="theme-picker"></div>
+            <div class="form-label" style="margin:16px 0 8px">Accent Color</div>
+            <div id="accent-picker"></div>
             <div class="form-label" style="margin:16px 0 8px">Animated Background</div>
             <div id="bg-picker"></div>
             <div class="toggle-row" style="margin-top:16px">
@@ -602,6 +637,7 @@
               <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Documents</div></div><label class="toggle"><input type="checkbox" id="toggle-documents"><span class="toggle-slider"></span></label></div>
               <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Cookbook</div></div><label class="toggle"><input type="checkbox" id="toggle-cookbook"><span class="toggle-slider"></span></label></div>
               <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Connections</div></div><label class="toggle"><input type="checkbox" id="toggle-connections"><span class="toggle-slider"></span></label></div>
+              <div class="toggle-row" style="border:none;padding:8px 0"><div><div class="toggle-label">Obsidian</div></div><label class="toggle"><input type="checkbox" id="toggle-obsidian"><span class="toggle-slider"></span></label></div>
             </div>
           </div>
 

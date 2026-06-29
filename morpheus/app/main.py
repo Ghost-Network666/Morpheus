@@ -1,12 +1,14 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, WebSocket, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings, load_overrides
 from app.database import init_db
+from app.core.sync import connect, disconnect
 
 
 @asynccontextmanager
@@ -131,6 +133,53 @@ def create_app() -> FastAPI:
         if settings.module_calendar:
             app.include_router(calendar_router)
 
+    if settings.module_obsidian:
+        from app.api.obsidian import router as obsidian_router
+        app.include_router(obsidian_router)
+
+    # WebSocket real-time sync
+    @app.websocket("/ws/sync")
+    async def ws_sync(ws: WebSocket, token: str = Query(default="")):
+        user_id = 1  # default when auth is disabled
+        if settings.auth_enabled:
+            from app.database import AsyncSessionLocal
+            from app.models.auth import ApiToken
+            from app.api.auth import hash_token, SESSION_COOKIE
+            from sqlalchemy import select
+
+            raw_token = token
+            if not raw_token:
+                cookie = ws.headers.get("cookie", "")
+                for part in cookie.split(";"):
+                    k, _, v = part.strip().partition("=")
+                    if k.strip() == SESSION_COOKIE:
+                        raw_token = v.strip()
+                        break
+
+            if not raw_token:
+                await ws.close(code=4401)
+                return
+
+            token_hash = hash_token(raw_token)
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(ApiToken).where(ApiToken.token_hash == token_hash)
+                )
+                tok = result.scalar_one_or_none()
+                if not tok:
+                    await ws.close(code=4401)
+                    return
+                user_id = tok.user_id
+
+        await connect(user_id, ws)
+        try:
+            while True:
+                data = await ws.receive_text()
+                if data == "ping":
+                    await ws.send_text('{"type":"pong"}')
+        except Exception:
+            disconnect(user_id, ws)
+
     # System info
     @app.get("/api/system/info")
     async def system_info():
@@ -155,6 +204,7 @@ def create_app() -> FastAPI:
                 "documents": settings.module_documents,
                 "cookbook": settings.module_cookbook,
                 "connections": settings.module_connections,
+                "obsidian": settings.module_obsidian,
             },
         }
 

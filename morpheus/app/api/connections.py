@@ -12,6 +12,16 @@ from app.utils.backup import create_backup, restore_backup
 router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 
+# ── Discovery ─────────────────────────────────────────────────────────────────
+
+@router.get("/discover")
+async def discover_servers(user: User = Depends(require_user)):
+    """Auto-discover Morpheus instances on Tailscale and local LAN."""
+    from app.utils.discovery import discover_servers as _discover
+    servers = await _discover(timeout=5.0)
+    return servers
+
+
 # ── Vault ────────────────────────────────────────────────────────────────────
 
 @router.get("/vault")

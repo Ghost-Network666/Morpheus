@@ -8,9 +8,11 @@ from app.models.memory import MemoryVector, Skill
 from app.models.vault import VaultItem
 from app.models.settings import UserSetting
 from app.models.system_setting import SystemSetting
+from app.models.obsidian import ObsidianNote
 
 all_models = [
     User, ChatSession, ChatMessage, Note, Task, CalendarEvent,
     EmailAccount, EmailMessage, SSHProfile, ApiToken,
     MemoryVector, Skill, VaultItem, UserSetting, SystemSetting,
+    ObsidianNote,
 ]
