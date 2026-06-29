@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'">
+<title>Connect — Morpheus</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 580px; height: 640px; overflow: hidden;
+    background: #1e1e2e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #cdd6f4;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  /* Drag region only on top bar */
+  .titlebar {
+    height: 36px; display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .titlebar .logo { font-size: 14px; color: #6c7086; letter-spacing: .1em; }
+  .close-btn {
+    position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: #6c7086; cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 4px;
+    -webkit-app-region: no-drag;
+  }
+  .close-btn:hover { color: #f38ba8; }
+
+  .content {
+    padding: 0 36px 28px;
+    overflow-y: auto;
+    height: calc(100% - 36px);
+    -webkit-app-region: no-drag;
+  }
+
+  .heading { text-align: center; margin-bottom: 28px; }
+  .heading .icon { font-size: 38px; margin-bottom: 10px; }
+  .heading h1 { font-size: 20px; font-weight: 700; color: #cba6f7; }
+  .heading p { font-size: 13px; color: #6c7086; margin-top: 4px; }
+
+  /* Mode cards */
+  .mode-row { display: flex; gap: 12px; margin-bottom: 24px; }
+  .mode-card {
+    flex: 1; background: #181825; border: 2px solid #313244;
+    border-radius: 12px; padding: 18px 14px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .mode-card:hover { border-color: #cba6f7; background: #1e1e2e; }
+  .mode-card.selected { border-color: #cba6f7; background: #2a2639; }
+  .mode-card .mi { font-size: 28px; margin-bottom: 8px; }
+  .mode-card strong { display: block; font-size: 14px; color: #cdd6f4; margin-bottom: 3px; }
+  .mode-card small { font-size: 12px; color: #6c7086; line-height: 1.4; }
+
+  /* Remote form */
+  .remote-form { display: none; margin-bottom: 20px; }
+  .remote-form.visible { display: block; }
+  label { display: block; font-size: 12px; color: #a6adc8; margin-bottom: 5px; }
+  input[type="text"], input[type="url"] {
+    width: 100%; padding: 9px 12px;
+    background: #181825; border: 1px solid #313244;
+    border-radius: 8px; color: #cdd6f4; font-size: 14px;
+    outline: none; transition: border-color .15s;
+    margin-bottom: 10px;
+  }
+  input:focus { border-color: #cba6f7; }
+  input::placeholder { color: #45475a; }
+
+  .test-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 9999px;
+    background: #313244; flex-shrink: 0;
+    transition: background .2s;
+  }
+  .status-dot.ok  { background: #a6e3a1; }
+  .status-dot.err { background: #f38ba8; }
+  .status-text { font-size: 12px; color: #6c7086; }
+  .status-text.ok  { color: #a6e3a1; }
+  .status-text.err { color: #f38ba8; }
+
+  /* Saved connections */
+  .saved-section { margin-bottom: 20px; }
+  .saved-label { font-size: 12px; color: #6c7086; margin-bottom: 8px; letter-spacing: .05em; text-transform: uppercase; }
+  .saved-list { display: flex; flex-direction: column; gap: 6px; }
+  .saved-item {
+    display: flex; align-items: center; gap: 10px;
+    background: #181825; border: 1px solid #313244;
+    border-radius: 8px; padding: 10px 12px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .saved-item:hover { border-color: #585b70; }
+  .saved-item .si-icon { font-size: 16px; }
+  .saved-item .si-info { flex: 1; min-width: 0; }
+  .saved-item .si-name { font-size: 13px; font-weight: 500; truncate-text: ellipsis; }
+  .saved-item .si-url  { font-size: 11px; color: #6c7086; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-item .si-del {
+    background: none; border: none; color: #45475a;
+    cursor: pointer; font-size: 16px; padding: 2px 4px;
+    border-radius: 4px; flex-shrink: 0;
+  }
+  .saved-item .si-del:hover { color: #f38ba8; background: #2a1e2e; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 8px; }
+  .btn {
+    flex: 1; padding: 11px 16px; border-radius: 8px; border: none;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-primary { background: #cba6f7; color: #1e1e2e; }
+  .btn-secondary { background: #313244; color: #cdd6f4; }
+
+  .btn-test {
+    padding: 9px 14px; border-radius: 8px; border: 1px solid #313244;
+    background: #181825; color: #a6adc8; font-size: 13px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: border-color .15s;
+  }
+  .btn-test:hover { border-color: #cba6f7; color: #cba6f7; }
+  .btn-test:disabled { opacity: .4; cursor: default; }
+
+  .divider { border: none; border-top: 1px solid #313244; margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <span class="logo">◈ MORPHEUS</span>
+  <button class="close-btn" onclick="window.electronAPI?.quitApp()" title="Quit">✕</button>
+</div>
+
+<div class="content">
+  <div class="heading">
+    <div class="icon">🔗</div>
+    <h1>Connect to Morpheus</h1>
+    <p>Run locally on this machine, or connect to your server</p>
+  </div>
+
+  <!-- Mode selector -->
+  <div class="mode-row">
+    <div class="mode-card selected" id="card-local" onclick="selectMode('local')">
+      <div class="mi">💻</div>
+      <strong>Local</strong>
+      <small>Run on this computer<br>Requires Python 3.10+</small>
+    </div>
+    <div class="mode-card" id="card-remote" onclick="selectMode('remote')">
+      <div class="mi">🌐</div>
+      <strong>Remote Server</strong>
+      <small>Connect to your server<br>or home lab</small>
+    </div>
+  </div>
+
+  <!-- Remote form -->
+  <div class="remote-form" id="remote-form">
+    <label for="inp-name">Connection name</label>
+    <input type="text" id="inp-name" placeholder="My Server" value="">
+
+    <label for="inp-url">Server URL</label>
+    <div class="test-row">
+      <input type="url" id="inp-url" placeholder="http://192.168.1.100:7860" style="margin-bottom:0;flex:1">
+      <button class="btn-test" id="test-btn" onclick="testConnection()">Test</button>
+    </div>
+    <div class="test-row" style="margin-bottom:0;margin-top:4px">
+      <div class="status-dot" id="test-dot"></div>
+      <span class="status-text" id="test-text">Enter your server URL above</span>
+    </div>
+  </div>
+
+  <!-- Connect button -->
+  <div class="btn-row" style="margin-top:16px">
+    <button class="btn btn-primary" id="connect-btn" onclick="doConnect()">Connect Locally</button>
+  </div>
+
+  <!-- Saved remote connections -->
+  <div class="saved-section" id="saved-section" style="display:none">
+    <hr class="divider">
+    <div class="saved-label">Saved connections</div>
+    <div class="saved-list" id="saved-list"></div>
+  </div>
+</div>
+
+<script>
+  let mode = "local";
+  let testPassed = false;
+  let connections = [];
+
+  function selectMode(m) {
+    mode = m;
+    testPassed = false;
+    document.getElementById("card-local").classList.toggle("selected", m === "local");
+    document.getElementById("card-remote").classList.toggle("selected", m === "remote");
+    document.getElementById("remote-form").classList.toggle("visible", m === "remote");
+    _updateConnectBtn();
+  }
+
+  function _updateConnectBtn() {
+    const btn = document.getElementById("connect-btn");
+    if (mode === "local") {
+      btn.textContent = "Connect Locally";
+      btn.disabled = false;
+    } else {
+      btn.textContent = "Connect to Server";
+      btn.disabled = !testPassed;
+    }
+  }
+
+  async function testConnection() {
+    const url = document.getElementById("inp-url").value.trim();
+    if (!url) return;
+    const dot  = document.getElementById("test-dot");
+    const txt  = document.getElementById("test-text");
+    const btn  = document.getElementById("test-btn");
+    dot.className = "status-dot";
+    txt.textContent = "Testing…";
+    txt.className = "status-text";
+    btn.disabled = true;
+    testPassed = false;
+    _updateConnectBtn();
+
+    try {
+      const res = await window.electronAPI.testRemoteUrl(url);
+      if (res.ok) {
+        dot.className = "status-dot ok";
+        txt.textContent = "Connected successfully";
+        txt.className = "status-text ok";
+        testPassed = true;
+      } else {
+        dot.className = "status-dot err";
+        txt.textContent = res.error || "Connection failed";
+        txt.className = "status-text err";
+      }
+    } catch (e) {
+      dot.className = "status-dot err";
+      txt.textContent = "Unexpected error";
+      txt.className = "status-text err";
+    } finally {
+      btn.disabled = false;
+      _updateConnectBtn();
+    }
+  }
+
+  function doConnect() {
+    if (mode === "local") {
+      window.electronAPI.connectLocal();
+    } else {
+      const url  = document.getElementById("inp-url").value.trim();
+      const name = document.getElementById("inp-name").value.trim() || _nameFromUrl(url);
+      if (!url) return;
+      window.electronAPI.connectRemote(name, url);
+    }
+  }
+
+  function _nameFromUrl(url) {
+    try { return new URL(url).hostname; } catch (_) { return url; }
+  }
+
+  function _renderSaved() {
+    const remotes = connections.filter(c => c.type === "remote");
+    const section = document.getElementById("saved-section");
+    const list    = document.getElementById("saved-list");
+    section.style.display = remotes.length ? "" : "none";
+    list.innerHTML = "";
+    remotes.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "saved-item";
+      row.innerHTML = `
+        <span class="si-icon">🌐</span>
+        <div class="si-info">
+          <div class="si-name">${_esc(c.name)}</div>
+          <div class="si-url">${_esc(c.url)}</div>
+        </div>
+        <button class="si-del" title="Remove" onclick="event.stopPropagation();removeSaved('${c.id}')">✕</button>
+      `;
+      row.addEventListener("click", () => {
+        document.getElementById("inp-url").value = c.url;
+        document.getElementById("inp-name").value = c.name;
+        selectMode("remote");
+      });
+      list.appendChild(row);
+    });
+  }
+
+  function removeSaved(id) {
+    window.electronAPI.deleteConnection(id);
+  }
+
+  function _esc(s) {
+    return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // Receive connections from main
+  window.electronAPI?.onConnectionsData(data => {
+    connections = data.connections || [];
+    _renderSaved();
+  });
+
+  // Also request on load
+  window.electronAPI?.getConnections().then(data => {
+    if (data) {
+      connections = data.connections || [];
+      _renderSaved();
+    }
+  });
+
+  // URL input clears test state
+  document.getElementById("inp-url").addEventListener("input", () => {
+    testPassed = false;
+    _updateConnectBtn();
+    document.getElementById("test-dot").className = "status-dot";
+    document.getElementById("test-text").textContent = "Enter your server URL above";
+    document.getElementById("test-text").className = "status-text";
+  });
+
+  // Allow Enter key to trigger test or connect
+  document.getElementById("inp-url").addEventListener("keydown", e => {
+    if (e.key === "Enter") testPassed ? doConnect() : testConnection();
+  });
+</script>
+</body>
+</html>

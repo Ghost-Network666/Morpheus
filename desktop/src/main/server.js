@@ -2,7 +2,7 @@
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { spawn, execFile } = require("child_process");
+const { spawn } = require("child_process");
 
 const PORT = 7860;
 const READY_TIMEOUT_MS = 120_000;  // 2 min for first-run venv creation
@@ -73,7 +73,6 @@ async function _resolvePython() {
 }
 
 async function _runSetup(python, appDir, venvDir, dataDir, onProgress) {
-  const setupScript = path.join(__dirname, "setup.js");
   const { runSetup } = require("./setup");
   await runSetup({ python, appDir, venvDir, dataDir, onProgress });
 }

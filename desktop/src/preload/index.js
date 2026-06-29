@@ -2,15 +2,25 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("electronAPI", {
-  // Called from loading/error screens
+  // ── Intro ──────────────────────────────────────────────────────────────────
+  introDone: () => ipcRenderer.send("intro-done"),
+
+  // ── Connection screen ──────────────────────────────────────────────────────
+  onConnectionsData: (cb) => ipcRenderer.on("connections-data", (_e, data) => cb(data)),
+  connectLocal:      () => ipcRenderer.send("connect-local"),
+  connectRemote:     (name, url) => ipcRenderer.send("connect-remote", { name, url }),
+  switchConnection:  (id) => ipcRenderer.send("switch-connection", id),
+  deleteConnection:  (id) => ipcRenderer.send("delete-connection", id),
+  testRemoteUrl:     (url) => ipcRenderer.invoke("test-remote-url", url),
+  getConnections:    () => ipcRenderer.invoke("get-connections"),
+
+  // ── Loading / error screen ─────────────────────────────────────────────────
   onSetupProgress: (cb) => ipcRenderer.on("setup-progress", (_e, msg) => cb(msg)),
   onSetupError:    (cb) => ipcRenderer.on("setup-error",    (_e, msg) => cb(msg)),
   onErrorMessage:  (cb) => ipcRenderer.on("error-message",  (_e, msg) => cb(msg)),
+  retrySetup:      () => ipcRenderer.send("retry-setup"),
 
-  // Actions
-  retrySetup: () => ipcRenderer.send("retry-setup"),
-  quitApp:    () => ipcRenderer.send("quit-app"),
-
-  // Status
-  getServerState: () => ipcRenderer.invoke("get-server-state"),
+  // ── Global / tray ─────────────────────────────────────────────────────────
+  goToConnect: () => ipcRenderer.send("go-to-connect"),
+  quitApp:     () => ipcRenderer.send("quit-app"),
 });

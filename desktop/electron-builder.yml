@@ -25,6 +25,8 @@ extraResources:
 files:
   - src/**/*
   - assets/icon.png
+  - assets/icon.ico
+  - assets/icon.icns
 
 # Windows
 win:

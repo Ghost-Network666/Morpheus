@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'">
+<title>Welcome to Morpheus</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 740px; height: 540px; overflow: hidden;
+    background: #1e1e2e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #cdd6f4;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  .slides { display: flex; width: 400%; height: 100%; transition: transform .45s cubic-bezier(.4,0,.2,1); }
+  .slide {
+    flex: 0 0 25%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 48px 56px; gap: 20px; text-align: center;
+  }
+
+  .icon { font-size: 52px; line-height: 1; }
+  h1 { font-size: 24px; font-weight: 700; color: #cba6f7; letter-spacing: -.01em; }
+  p  { font-size: 15px; color: #a6adc8; line-height: 1.65; max-width: 480px; }
+
+  .feature-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; width: 100%; margin-top: 4px;
+  }
+  .feature-card {
+    background: #181825; border: 1px solid #313244;
+    border-radius: 10px; padding: 14px 10px;
+    font-size: 13px; color: #cdd6f4;
+  }
+  .feature-card .fi { font-size: 22px; display: block; margin-bottom: 6px; }
+
+  .mode-row { display: flex; gap: 16px; width: 100%; margin-top: 4px; }
+  .mode-card {
+    flex: 1; background: #181825; border: 1px solid #313244;
+    border-radius: 12px; padding: 18px 14px; text-align: center;
+  }
+  .mode-card .mi { font-size: 30px; margin-bottom: 8px; }
+  .mode-card strong { display: block; font-size: 14px; color: #cba6f7; margin-bottom: 4px; }
+  .mode-card small { font-size: 12px; color: #a6adc8; line-height: 1.5; }
+
+  /* Nav bar */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 72px; background: #181825;
+    border-top: 1px solid #313244;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px;
+    -webkit-app-region: no-drag;
+  }
+
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 9999px;
+    background: #313244; transition: background .2s, width .2s;
+  }
+  .dot.active { background: #cba6f7; width: 22px; }
+
+  button {
+    padding: 9px 22px; border-radius: 8px; border: none;
+    font-size: 14px; cursor: pointer; font-weight: 500;
+    transition: opacity .15s;
+    -webkit-app-region: no-drag;
+  }
+  button:hover { opacity: .85; }
+  .btn-skip { background: transparent; color: #6c7086; }
+  .btn-next { background: #cba6f7; color: #1e1e2e; }
+  .btn-start { background: #a6e3a1; color: #1e1e2e; }
+</style>
+</head>
+<body>
+
+<div class="slides" id="slides">
+
+  <!-- Slide 1: Welcome -->
+  <div class="slide">
+    <div class="icon">◈</div>
+    <h1>Welcome to Morpheus</h1>
+    <p>Your self-hosted AI workspace. Chat with any AI model, run agents, search your notes, and keep all your data private — on your machine or your own server.</p>
+  </div>
+
+  <!-- Slide 2: Features -->
+  <div class="slide">
+    <div class="icon">✦</div>
+    <h1>Everything in one place</h1>
+    <div class="feature-grid">
+      <div class="feature-card"><span class="fi">💬</span>Multi-model Chat</div>
+      <div class="feature-card"><span class="fi">🤖</span>AI Agents</div>
+      <div class="feature-card"><span class="fi">🧠</span>RAG Memory</div>
+      <div class="feature-card"><span class="fi">📝</span>Notes &amp; Tasks</div>
+      <div class="feature-card"><span class="fi">📅</span>Calendar</div>
+      <div class="feature-card"><span class="fi">📂</span>Documents</div>
+      <div class="feature-card"><span class="fi">🔍</span>Web Research</div>
+      <div class="feature-card"><span class="fi">🔮</span>Obsidian Vault</div>
+      <div class="feature-card"><span class="fi">🔌</span>SSH &amp; Terminal</div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Local vs Remote -->
+  <div class="slide">
+    <div class="icon">🔗</div>
+    <h1>Two ways to connect</h1>
+    <p>Run Morpheus on this computer, or connect to a server you've already set up. You can switch at any time.</p>
+    <div class="mode-row">
+      <div class="mode-card">
+        <div class="mi">💻</div>
+        <strong>Local</strong>
+        <small>Runs everything on this machine. Requires Python 3.10+.</small>
+      </div>
+      <div class="mode-card">
+        <div class="mi">🌐</div>
+        <strong>Remote Server</strong>
+        <small>Connect to Morpheus running on your server or home lab.</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Get Started -->
+  <div class="slide">
+    <div class="icon">🚀</div>
+    <h1>You're all set</h1>
+    <p>Next you'll choose how to connect. You can configure everything — AI providers, API keys, modules — directly inside the app. No terminal or config file editing needed.</p>
+    <p style="font-size:13px;color:#585b70;margin-top:8px">Your data always stays under your control.</p>
+  </div>
+
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <div class="dots" id="dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button class="btn-skip" id="skip-btn" onclick="skip()">Skip</button>
+    <button class="btn-next" id="next-btn" onclick="next()">Next →</button>
+  </div>
+</div>
+
+<script>
+  let current = 0;
+  const total = 4;
+  const slides = document.getElementById("slides");
+  const dots   = document.querySelectorAll(".dot");
+  const nextBtn = document.getElementById("next-btn");
+  const skipBtn = document.getElementById("skip-btn");
+
+  function go(n) {
+    current = Math.max(0, Math.min(total - 1, n));
+    slides.style.transform = `translateX(-${current * 25}%)`;
+    dots.forEach((d, i) => d.classList.toggle("active", i === current));
+    const isLast = current === total - 1;
+    nextBtn.textContent = isLast ? "Get Started" : "Next →";
+    nextBtn.className   = isLast ? "btn-start" : "btn-next";
+    skipBtn.style.display = isLast ? "none" : "";
+  }
+
+  function next() {
+    if (current < total - 1) { go(current + 1); }
+    else { done(); }
+  }
+
+  function skip() { done(); }
+
+  function done() {
+    window.electronAPI?.introDone();
+  }
+
+  // Keyboard nav
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "Enter") next();
+    if (e.key === "ArrowLeft") go(current - 1);
+    if (e.key === "Escape") skip();
+  });
+</script>
+</body>
+</html>
