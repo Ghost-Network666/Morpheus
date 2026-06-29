@@ -8,6 +8,13 @@ _collection = None
 _embed_model = None  # singleton — loading fastembed is expensive
 
 
+def reset_client():
+    """Clear cached ChromaDB client so next call re-initialises with current settings."""
+    global _client, _collection
+    _client = None
+    _collection = None
+
+
 def _get_collection():
     global _client, _collection
     if _collection:

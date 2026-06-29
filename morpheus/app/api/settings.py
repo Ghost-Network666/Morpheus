@@ -233,6 +233,10 @@ async def update_settings(request: Request, db: AsyncSession = Depends(get_db), 
             _write_env(sys_updates)
         except Exception:
             pass  # non-fatal — DB is source of truth
+        # Re-initialise ChromaDB client if connection settings changed
+        if any(k in sys_updates for k in ("chroma_host", "chroma_port", "chroma_in_process")):
+            from app.core import rag_engine
+            rag_engine.reset_client()
     return {"ok": True, "env_written": bool(sys_updates)}
 
 

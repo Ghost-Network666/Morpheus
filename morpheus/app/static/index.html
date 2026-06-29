@@ -557,6 +557,29 @@
                 <input id="setting-ntfy-topic" placeholder="morpheus">
               </div>
             </div>
+            <div class="form-group" style="margin-top:10px">
+              <label class="form-label">Slack Webhook URL <span class="text-muted text-sm">(optional)</span></label>
+              <input id="setting-slack-webhook" type="password" placeholder="https://hooks.slack.com/services/…">
+            </div>
+          </div>
+
+          <!-- Integrations -->
+          <div class="settings-section">
+            <div class="settings-section-title">Integrations</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">GitHub Token</label>
+                <input id="setting-github-token" type="password" placeholder="ghp_…">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Notion Token</label>
+                <input id="setting-notion-token" type="password" placeholder="secret_…">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Linear API Key</label>
+              <input id="setting-linear-key" type="password" placeholder="lin_api_…">
+            </div>
           </div>
 
           <!-- Auth -->
@@ -602,16 +625,26 @@
           <div class="settings-section">
             <div class="settings-section-title">Server <span class="text-muted text-sm">(restart required)</span></div>
             <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Host / Bind Address</label>
+                <input id="setting-app-host" placeholder="0.0.0.0">
+                <div class="form-hint">Use 0.0.0.0 for LAN access, 127.0.0.1 for local-only</div>
+              </div>
               <div class="form-group" style="max-width:120px">
                 <label class="form-label">Port</label>
                 <input id="setting-app-port" type="number" placeholder="7860">
               </div>
-              <div class="form-group" style="align-self:flex-end;padding-bottom:1px">
-                <div class="toggle-row" style="border:none;padding:0">
-                  <div><div class="toggle-label">Debug Mode</div></div>
-                  <label class="toggle" style="margin-left:12px"><input type="checkbox" id="setting-app-debug"><span class="toggle-slider"></span></label>
-                </div>
+            </div>
+            <div class="toggle-row" style="margin-top:8px">
+              <div><div class="toggle-label">Debug Mode</div></div>
+              <label class="toggle"><input type="checkbox" id="setting-app-debug"><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Tailscale Detection</div>
+                <div class="toggle-desc">Auto-discover peers via Tailscale local API</div>
               </div>
+              <label class="toggle"><input type="checkbox" id="setting-tailscale-detect"><span class="toggle-slider"></span></label>
             </div>
           </div>
 

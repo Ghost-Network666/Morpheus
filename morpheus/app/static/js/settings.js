@@ -151,6 +151,12 @@ function _renderFields() {
   // Notifications
   _set("setting-ntfy-url",   s.ntfy_url   || "");
   _set("setting-ntfy-topic", s.ntfy_topic || "");
+  _set("setting-slack-webhook", "", "placeholder", s.slack_webhook ? "••••••••" : "https://hooks.slack.com/services/…");
+
+  // Integrations
+  _set("setting-github-token",  "", "placeholder", s.github_token  ? "••••••••" : "ghp_…");
+  _set("setting-notion-token",  "", "placeholder", s.notion_token  ? "••••••••" : "secret_…");
+  _set("setting-linear-key",    "", "placeholder", s.linear_api_key ? "••••••••" : "lin_api_…");
 
   // Auth
   _check("setting-auth-enabled", !!s.auth_enabled);
@@ -158,8 +164,10 @@ function _renderFields() {
   _set("setting-trusted-lan",  s.trusted_lan || "127.0.0.1/8,::1");
 
   // Server
+  _set("setting-app-host",  s.app_host  || "127.0.0.1");
   _set("setting-app-port",  s.app_port != null ? String(s.app_port) : "7860");
   _check("setting-app-debug", !!s.app_debug);
+  _check("setting-tailscale-detect", s.tailscale_detect !== false);
 
   // RAG
   _check("setting-chroma-in-process", s.chroma_in_process !== false);
@@ -233,6 +241,11 @@ async function _save() {
     "setting-trusted-lan":         "trusted_lan",
     "setting-chroma-host":         "chroma_host",
     "setting-obsidian-vault-path": "obsidian_vault_path",
+    "setting-app-host":            "app_host",
+    "setting-slack-webhook":       "slack_webhook",
+    "setting-github-token":        "github_token",
+    "setting-notion-token":        "notion_token",
+    "setting-linear-key":          "linear_api_key",
   };
 
   for (const [id, key] of Object.entries(fields)) {
@@ -252,6 +265,7 @@ async function _save() {
   updates.auth_enabled        = document.getElementById("setting-auth-enabled")?.checked ?? false;
   updates.app_debug           = document.getElementById("setting-app-debug")?.checked    ?? false;
   updates.chroma_in_process   = document.getElementById("setting-chroma-in-process")?.checked ?? true;
+  updates.tailscale_detect    = document.getElementById("setting-tailscale-detect")?.checked ?? true;
 
   // Memory source
   const memorySrc = document.getElementById("setting-memory-source")?.value;
