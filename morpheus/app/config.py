@@ -1,28 +1,8 @@
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from typing import Optional, Any
-import secrets
 import os
 
-
-def _persistent_secret() -> str:
-    """Return a stable secret key, persisting it to data/secret.key if not set via env."""
-    env_val = os.environ.get("SECRET_KEY")
-    if env_val:
-        return env_val
-    data_dir = os.environ.get("DATA_DIR", "data")
-    key_path = os.path.join(data_dir, "secret.key")
-    try:
-        if os.path.exists(key_path):
-            with open(key_path, "r") as f:
-                return f.read().strip()
-        os.makedirs(data_dir, exist_ok=True)
-        key = secrets.token_hex(32)
-        with open(key_path, "w") as f:
-            f.write(key)
-        return key
-    except Exception:
-        return secrets.token_hex(32)
 
 
 class Settings(BaseSettings):
@@ -30,14 +10,6 @@ class Settings(BaseSettings):
     app_host: str = Field("127.0.0.1", env="APP_HOST")
     app_port: int = Field(7860, env="APP_PORT")
     app_debug: bool = Field(False, env="APP_DEBUG")
-
-    # Auth
-    auth_enabled: bool = Field(False, env="AUTH_ENABLED")
-    secret_key: str = Field(default_factory=_persistent_secret, env="SECRET_KEY")
-    session_expire_days: int = Field(30, env="SESSION_EXPIRE_DAYS")
-    admin_username: str = Field("admin", env="ADMIN_USERNAME")
-    admin_password: Optional[str] = Field(None, env="ADMIN_PASSWORD")
-    trusted_lan: str = Field("127.0.0.1/8,::1", env="TRUSTED_LAN")
 
     # AI
     ollama_url: str = Field("http://localhost:11434", env="OLLAMA_URL")
@@ -133,10 +105,6 @@ class Settings(BaseSettings):
     @property
     def is_postgres(self) -> bool:
         return "postgresql" in self.database_url or "postgres" in self.database_url
-
-    @property
-    def trusted_cidrs(self) -> list[str]:
-        return [c.strip() for c in self.trusted_lan.split(",") if c.strip()]
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

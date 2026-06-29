@@ -31,9 +31,6 @@ _ENV_MAP = {
     "github_token":       "GITHUB_TOKEN",
     "notion_token":       "NOTION_TOKEN",
     "linear_api_key":     "LINEAR_API_KEY",
-    "auth_enabled":       "AUTH_ENABLED",
-    "session_expire_days":"SESSION_EXPIRE_DAYS",
-    "trusted_lan":        "TRUSTED_LAN",
     "app_port":           "APP_PORT",
     "app_debug":          "APP_DEBUG",
     "chroma_host":        "CHROMA_HOST",
@@ -52,10 +49,10 @@ _ENV_MAP = {
     "module_documents":   "MODULE_DOCUMENTS",
     "module_cookbook":    "MODULE_COOKBOOK",
     "module_connections": "MODULE_CONNECTIONS",
-    "module_obsidian":   "MODULE_OBSIDIAN",
-    "memory_source":     "MEMORY_SOURCE",
+    "module_obsidian":    "MODULE_OBSIDIAN",
+    "memory_source":      "MEMORY_SOURCE",
     "obsidian_vault_path": "OBSIDIAN_VAULT_PATH",
-    "app_host":          "APP_HOST",
+    "app_host":           "APP_HOST",
 }
 
 
@@ -64,7 +61,6 @@ def _write_env(updates: dict):
     env_path = ".env"
     example_path = ".env.example"
 
-    # Read existing content or fall back to example
     if os.path.exists(env_path):
         with open(env_path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -74,19 +70,16 @@ def _write_env(updates: dict):
     else:
         lines = []
 
-    # Build a dict of env_var → line index for existing entries
     existing: dict[str, int] = {}
     for i, line in enumerate(lines):
         m = re.match(r'^([A-Z0-9_]+)\s*=', line)
         if m:
             existing[m.group(1)] = i
 
-    # Apply updates
     for key, value in updates.items():
         env_var = _ENV_MAP.get(key)
         if not env_var:
             continue
-        # Format value
         str_val = str(value).lower() if isinstance(value, bool) else str(value)
         new_line = f"{env_var}={str_val}\n"
         if env_var in existing:
@@ -105,7 +98,6 @@ USER_KEYS = {
 }
 
 # Keys that are system-global (stored in system_settings table)
-# Maps UI key → Settings attribute name
 SYSTEM_KEYS = {
     # AI
     "ollama_url":        "ollama_url",
@@ -128,10 +120,6 @@ SYSTEM_KEYS = {
     "github_token":      "github_token",
     "notion_token":      "notion_token",
     "linear_api_key":    "linear_api_key",
-    # Auth
-    "auth_enabled":      "auth_enabled",
-    "session_expire_days": "session_expire_days",
-    "trusted_lan":       "trusted_lan",
     # Server
     "app_port":          "app_port",
     "app_debug":         "app_debug",
@@ -163,7 +151,7 @@ SYSTEM_KEYS = {
     "app_host":          "app_host",
 }
 
-# Keys whose values are masked in GET responses (show placeholder if set)
+# Keys whose values are masked in GET responses
 SECRET_KEYS = {
     "openai_api_key", "anthropic_api_key", "brave_api_key", "tavily_api_key", "google_pse_key",
     "github_token", "notion_token", "linear_api_key", "slack_webhook",
@@ -172,24 +160,20 @@ SECRET_KEYS = {
 
 @router.get("")
 async def get_settings(db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
-    # System settings from DB
     sys_result = await db.execute(select(SystemSetting))
     sys_db = {r.key: _parse(r.value) for r in sys_result.scalars().all()}
 
-    # User settings from DB
     usr_result = await db.execute(select(UserSetting).where(UserSetting.user_id == user.id))
     usr_db = {r.key: _parse(r.value) for r in usr_result.scalars().all()}
 
     out = {}
-    # System settings: DB override → env/pydantic default
     for key, attr in SYSTEM_KEYS.items():
         val = sys_db.get(key, getattr(app_settings, attr, None))
         if key in SECRET_KEYS and val:
-            out[key] = "••••••••"   # masked
+            out[key] = "••••••••"
         else:
             out[key] = val
 
-    # User settings
     for key in USER_KEYS:
         out[key] = usr_db.get(key)
 
@@ -201,7 +185,6 @@ async def update_settings(request: Request, db: AsyncSession = Depends(get_db), 
     body = await request.json()
 
     for key, value in body.items():
-        # "__clear__" sentinel: delete the setting row
         if value == "__clear__":
             if key in SYSTEM_KEYS:
                 row = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
@@ -212,28 +195,24 @@ async def update_settings(request: Request, db: AsyncSession = Depends(get_db), 
             continue
 
         if value == "" or value is None:
-            continue  # don't overwrite with empty
+            continue
 
-        # Skip masked placeholder
         if isinstance(value, str) and value.startswith("••"):
             continue
 
         if key in SYSTEM_KEYS:
             await _upsert_system(db, key, value)
             set_override(SYSTEM_KEYS[key], value)
-
         elif key in USER_KEYS:
             await _upsert_user(db, user.id, key, value)
 
     await db.commit()
-    # Mirror system setting changes to .env
     sys_updates = {k: v for k, v in body.items() if k in SYSTEM_KEYS and not (isinstance(v, str) and v.startswith("••"))}
     if sys_updates:
         try:
             _write_env(sys_updates)
         except Exception:
-            pass  # non-fatal — DB is source of truth
-        # Re-initialise ChromaDB client if connection settings changed
+            pass
         if any(k in sys_updates for k in ("chroma_host", "chroma_port", "chroma_in_process")):
             from app.core import rag_engine
             rag_engine.reset_client()
@@ -247,7 +226,6 @@ async def toggle_module(module: str, db: AsyncSession = Depends(get_db), user: U
         raise HTTPException(400, f"Unknown module: {module}")
 
     attr = SYSTEM_KEYS[key]
-    # Current value: DB first, then env
     sys_result = await db.execute(select(SystemSetting).where(SystemSetting.key == key))
     row = sys_result.scalar_one_or_none()
     current = _parse(row.value) if row else getattr(app_settings, attr, True)
@@ -259,17 +237,15 @@ async def toggle_module(module: str, db: AsyncSession = Depends(get_db), user: U
     return {"module": key, "enabled": new_val}
 
 
-# ── Password change ───────────────────────────────────────────────────────────
 @router.get("/env-status")
 async def env_status(user: User = Depends(require_user)):
-    has_env     = os.path.exists(".env")
+    has_env = os.path.exists(".env")
     has_example = os.path.exists(".env.example")
     return {"has_env": has_env, "has_example": has_example}
 
 
 @router.get("/setup-status")
 async def setup_status(db: AsyncSession = Depends(get_db)):
-    """Check whether initial setup has been completed. No auth required."""
     result = await db.execute(select(SystemSetting).where(SystemSetting.key == "setup_complete"))
     row = result.scalar_one_or_none()
     done = row and _parse(row.value) is True
@@ -278,8 +254,6 @@ async def setup_status(db: AsyncSession = Depends(get_db)):
 
 @router.post("/complete-setup")
 async def complete_setup(request: Request, db: AsyncSession = Depends(get_db)):
-    """Save initial settings and mark setup complete. No auth required, but only callable once."""
-    # Idempotent: re-calling after setup is already complete is a no-op
     body = await request.json()
     saveable = {k: v for k, v in body.items() if k in SYSTEM_KEYS and v not in (None, "", [])}
     for key, value in saveable.items():
@@ -292,26 +266,6 @@ async def complete_setup(request: Request, db: AsyncSession = Depends(get_db)):
             _write_env(saveable)
         except Exception:
             pass
-    return {"ok": True}
-
-
-@router.post("/change-password")
-async def change_password(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
-    from app.api.auth import hash_password, verify_password
-    body = await request.json()
-    current = body.get("current_password", "")
-    new_pw  = body.get("new_password", "")
-
-    if not new_pw or len(new_pw) < 6:
-        raise HTTPException(400, "New password must be at least 6 characters")
-
-    # When auth is disabled anyone can access the app anyway, so skip current-password
-    # verification to let users set a password before enabling auth.
-    if app_settings.auth_enabled and user.password_hash and not verify_password(current, user.password_hash):
-        raise HTTPException(401, "Current password is incorrect")
-
-    user.password_hash = hash_password(new_pw)
-    await db.commit()
     return {"ok": True}
 
 

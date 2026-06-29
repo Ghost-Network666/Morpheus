@@ -1,7 +1,7 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request, WebSocket, Query
+from fastapi import FastAPI, Request, WebSocket
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
     os.makedirs(os.path.join(settings.data_dir, "backups"), exist_ok=True)
     os.makedirs(os.path.join(settings.data_dir, "ssh"), exist_ok=True)
     await init_db()
-    await _ensure_admin_user()
+    await _ensure_owner_user()
     await _load_system_settings()
     yield
 
@@ -41,24 +41,15 @@ async def _load_system_settings():
         load_overrides(overrides)
 
 
-async def _ensure_admin_user():
+async def _ensure_owner_user():
     from app.database import AsyncSessionLocal
     from app.models.user import User
-    from app.api.auth import hash_password
     from sqlalchemy import select
-    import secrets
 
     async with AsyncSessionLocal() as db:
-        result = await db.execute(select(User).where(User.username == settings.admin_username))
-        user = result.scalar_one_or_none()
-        if not user:
-            password = settings.admin_password or secrets.token_urlsafe(16)
-            user = User(
-                username=settings.admin_username,
-                password_hash=hash_password(password),
-                is_admin=True,
-            )
-            db.add(user)
+        result = await db.execute(select(User).limit(1))
+        if not result.scalar_one_or_none():
+            db.add(User(username="owner"))
             await db.commit()
 
 
@@ -81,12 +72,10 @@ def create_app() -> FastAPI:
     )
 
     # Register API routers
-    from app.api.auth import router as auth_router
     from app.api.chat import router as chat_router
     from app.api.settings import router as settings_router
     from app.api.connections import router as connections_router
 
-    app.include_router(auth_router)
     app.include_router(chat_router)
     app.include_router(settings_router)
     app.include_router(connections_router)
@@ -134,39 +123,8 @@ def create_app() -> FastAPI:
 
     # WebSocket real-time sync
     @app.websocket("/ws/sync")
-    async def ws_sync(ws: WebSocket, token: str = Query(default="")):
-        user_id = 1  # default when auth is disabled
-        if settings.auth_enabled:
-            from app.database import AsyncSessionLocal
-            from app.models.auth import ApiToken
-            from app.api.auth import hash_token, SESSION_COOKIE
-            from sqlalchemy import select
-
-            raw_token = token
-            if not raw_token:
-                cookie = ws.headers.get("cookie", "")
-                for part in cookie.split(";"):
-                    k, _, v = part.strip().partition("=")
-                    if k.strip() == SESSION_COOKIE:
-                        raw_token = v.strip()
-                        break
-
-            if not raw_token:
-                await ws.close(code=4401)
-                return
-
-            token_hash = hash_token(raw_token)
-            async with AsyncSessionLocal() as db:
-                result = await db.execute(
-                    select(ApiToken).where(ApiToken.token_hash == token_hash)
-                )
-                tok = result.scalar_one_or_none()
-                if not tok:
-                    await ws.close(code=4401)
-                    return
-                user_id = tok.user_id
-
-        await connect(user_id, ws)
+    async def ws_sync(ws: WebSocket):
+        await connect(1, ws)
         try:
             while True:
                 data = await ws.receive_text()
@@ -182,7 +140,6 @@ def create_app() -> FastAPI:
         tailscale_url = get_tailscale_url(settings.app_port) if settings.tailscale_detect else None
         return {
             "version": "1.0.0",
-            "auth_enabled": settings.auth_enabled,
             "default_model": settings.default_model,
             "default_provider": settings.default_provider,
             "tailscale_url": tailscale_url,
