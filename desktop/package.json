@@ -1,0 +1,21 @@
+{
+  "name": "morpheus-desktop",
+  "version": "1.0.0",
+  "description": "Self-hosted AI workspace — desktop app",
+  "main": "src/main/index.js",
+  "author": "Ghost Network",
+  "license": "MIT",
+  "scripts": {
+    "dev": "electron . --dev",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux",
+    "icons": "python3 scripts/generate-icon.py",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}

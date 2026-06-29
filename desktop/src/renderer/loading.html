@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'">
+<title>Morpheus</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 420px; height: 320px;
+    background: transparent;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #cdd6f4;
+    overflow: hidden;
+  }
+  .card {
+    width: 100%; height: 100%;
+    background: #1e1e2e;
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    border: 1px solid #313244;
+    -webkit-app-region: drag;
+  }
+  .logo {
+    font-size: 48px;
+    line-height: 1;
+  }
+  .name {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: #cba6f7;
+  }
+  .status {
+    font-size: 13px;
+    color: #a6adc8;
+    min-height: 18px;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .bar-wrap {
+    width: 220px;
+    height: 4px;
+    background: #313244;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .bar {
+    height: 100%;
+    width: 30%;
+    background: #cba6f7;
+    border-radius: 9999px;
+    animation: slide 1.4s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0%   { transform: translateX(-100%); }
+    50%  { transform: translateX(230%); }
+    100% { transform: translateX(230%); }
+  }
+  .error-box {
+    display: none;
+    font-size: 12px;
+    color: #f38ba8;
+    text-align: center;
+    padding: 0 24px;
+    max-width: 380px;
+    word-break: break-word;
+  }
+  .btn-row {
+    display: none;
+    gap: 8px;
+  }
+  button {
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid #313244;
+    background: #313244;
+    color: #cdd6f4;
+    font-size: 13px;
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+  }
+  button:hover { background: #45475a; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">◈</div>
+  <div class="name">Morpheus</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+  <div class="status" id="status">Starting up…</div>
+  <div class="error-box" id="error-box"></div>
+  <div class="btn-row" id="btn-row">
+    <button onclick="window.electronAPI.retrySetup()">Retry</button>
+    <button onclick="window.electronAPI.quitApp()">Quit</button>
+  </div>
+</div>
+<script>
+  window.electronAPI?.onSetupProgress(msg => {
+    document.getElementById("status").textContent = msg;
+  });
+
+  window.electronAPI?.onSetupError(msg => {
+    document.getElementById("bar").style.display = "none";
+    document.getElementById("status").style.display = "none";
+    const err = document.getElementById("error-box");
+    err.textContent = msg;
+    err.style.display = "block";
+    document.getElementById("btn-row").style.display = "flex";
+  });
+</script>
+</body>
+</html>

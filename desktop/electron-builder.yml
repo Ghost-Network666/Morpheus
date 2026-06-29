@@ -1,0 +1,83 @@
+appId: com.ghostnetwork.morpheus
+productName: Morpheus
+copyright: Copyright © 2025 Ghost Network
+
+directories:
+  buildResources: assets
+  output: dist
+
+# Bundle the Python app into the package
+extraResources:
+  - from: ../morpheus
+    to: app
+    filter:
+      - "**/*"
+      - "!**/__pycache__/**"
+      - "!**/*.pyc"
+      - "!**/*.pyo"
+      - "!venv/**"
+      - "!.venv/**"
+      - "!data/**"
+      - "!.env"
+      - "!tests/**"
+      - "!.git/**"
+
+files:
+  - src/**/*
+  - assets/icon.png
+
+# Windows
+win:
+  icon: assets/icon.ico
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: assets/icon.ico
+  uninstallerIcon: assets/icon.ico
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Morpheus
+
+# macOS
+mac:
+  icon: assets/icon.icns
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: assets/entitlements.mac.plist
+  entitlementsInherit: assets/entitlements.mac.plist
+dmg:
+  title: "Install Morpheus"
+  background: assets/dmg-bg.png
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# Linux
+linux:
+  icon: assets/icon.png
+  target:
+    - AppImage
+    - deb
+  category: Utility
+  synopsis: Self-hosted AI workspace
+  description: >
+    Morpheus is a self-hosted AI workspace with chat, agent mode,
+    RAG memory, Obsidian vault integration, and multi-provider AI support.
+
+publish:
+  provider: github
+  owner: Ghost-Network666
+  repo: Morpheus
