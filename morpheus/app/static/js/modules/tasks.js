@@ -2,15 +2,28 @@ import API from "../api.js";
 import { toast, escapeHtml, showModal, closeModal } from "../app.js";
 
 let _tasks = [];
+let _filter = { status: "all", priority: "all" };
 
 export async function initTasks() {
   await loadTasks();
   document.getElementById("tasks-new-btn")?.addEventListener("click", () => showNewTaskModal());
+
+  document.getElementById("tasks-status-filter")?.addEventListener("change", async (e) => {
+    _filter.status = e.target.value;
+    await loadTasks();
+  });
+  document.getElementById("tasks-priority-filter")?.addEventListener("change", async (e) => {
+    _filter.priority = e.target.value;
+    await loadTasks();
+  });
 }
 
 async function loadTasks() {
   try {
-    _tasks = await API.tasks.list();
+    const params = {};
+    if (_filter.status !== "all") params.status = _filter.status;
+    if (_filter.priority !== "all") params.priority = _filter.priority;
+    _tasks = await API.tasks.list(params);
     render();
   } catch (e) { toast(e.message, "error"); }
 }

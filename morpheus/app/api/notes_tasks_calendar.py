@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -78,9 +78,31 @@ tasks_router = APIRouter(prefix="/api/tasks")
 
 
 @tasks_router.get("")
-async def list_tasks(db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
-    result = await db.execute(select(Task).where(Task.user_id == user.id).order_by(Task.due_date, desc(Task.created_at)))
+async def list_tasks(
+    status: Optional[str] = Query(None, description="Filter by status: pending | done | all (default: all)"),
+    priority: Optional[str] = Query(None, description="Filter by priority: low | medium | high"),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    q = select(Task).where(Task.user_id == user.id)
+    if status == "pending":
+        q = q.where(Task.completed == False)  # noqa: E712
+    elif status == "done":
+        q = q.where(Task.completed == True)  # noqa: E712
+    if priority in ("low", "medium", "high"):
+        q = q.where(Task.priority == priority)
+    q = q.order_by(Task.completed, Task.due_date, desc(Task.created_at))
+    result = await db.execute(q)
     return [_task_out(t) for t in result.scalars().all()]
+
+
+@tasks_router.get("/{task_id}")
+async def get_task(task_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
+    result = await db.execute(select(Task).where(Task.id == task_id, Task.user_id == user.id))
+    task = result.scalar_one_or_none()
+    if not task:
+        raise HTTPException(404, "Task not found")
+    return _task_out(task)
 
 
 @tasks_router.post("")
@@ -130,7 +152,7 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db), user: Us
 
 
 def _task_out(t: Task):
-    return {"id": t.id, "title": t.title, "description": t.description, "due_date": t.due_date, "completed": t.completed, "priority": t.priority, "cron_expression": t.cron_expression, "created_at": t.created_at}
+    return {"id": t.id, "title": t.title, "description": t.description, "due_date": t.due_date, "completed": t.completed, "priority": t.priority, "cron_expression": t.cron_expression, "webhook_url": t.webhook_url, "created_at": t.created_at, "updated_at": t.updated_at}
 
 
 # ── Calendar ─────────────────────────────────────────────────────────────────

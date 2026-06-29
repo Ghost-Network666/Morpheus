@@ -126,7 +126,11 @@ const API = {
 
   // Tasks
   tasks: {
-    list: () => API.get("/api/tasks"),
+    list: (params = {}) => {
+      const qs = new URLSearchParams(params).toString();
+      return API.get(`/api/tasks${qs ? "?" + qs : ""}`);
+    },
+    get: (id) => API.get(`/api/tasks/${id}`),
     create: (b) => API.post("/api/tasks", b),
     update: (id, b) => API.put(`/api/tasks/${id}`, b),
     delete: (id) => API.delete(`/api/tasks/${id}`),

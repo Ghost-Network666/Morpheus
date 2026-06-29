@@ -28,15 +28,27 @@ async def test_notes_crud(client):
 @pytest.mark.asyncio
 async def test_tasks_crud(client):
     # Create
-    r = await client.post("/api/tasks", json={"title": "Test Task", "priority": "high"})
+    r = await client.post("/api/tasks", json={"title": "Test Task", "priority": "high", "webhook_url": "https://example.com/hook"})
     assert r.status_code == 200
     task = r.json()
     assert task["title"] == "Test Task"
     assert task["priority"] == "high"
+    assert task["webhook_url"] == "https://example.com/hook"
+    assert "updated_at" in task
     task_id = task["id"]
 
-    # List
+    # Get single task
+    r = await client.get(f"/api/tasks/{task_id}")
+    assert r.status_code == 200
+    assert r.json()["id"] == task_id
+
+    # List all
     r = await client.get("/api/tasks")
+    assert r.status_code == 200
+    assert any(t["id"] == task_id for t in r.json())
+
+    # Filter pending — task should appear
+    r = await client.get("/api/tasks?status=pending")
     assert r.status_code == 200
     assert any(t["id"] == task_id for t in r.json())
 
@@ -44,6 +56,29 @@ async def test_tasks_crud(client):
     r = await client.put(f"/api/tasks/{task_id}", json={"completed": True})
     assert r.status_code == 200
     assert r.json()["completed"] is True
+
+    # Filter pending — completed task should not appear
+    r = await client.get("/api/tasks?status=pending")
+    assert r.status_code == 200
+    assert not any(t["id"] == task_id for t in r.json())
+
+    # Filter done — task should appear
+    r = await client.get("/api/tasks?status=done")
+    assert r.status_code == 200
+    assert any(t["id"] == task_id for t in r.json())
+
+    # Filter by priority
+    r = await client.get("/api/tasks?priority=high")
+    assert r.status_code == 200
+    assert any(t["id"] == task_id for t in r.json())
+
+    r = await client.get("/api/tasks?priority=low")
+    assert r.status_code == 200
+    assert not any(t["id"] == task_id for t in r.json())
+
+    # 404 for nonexistent task
+    r = await client.get("/api/tasks/999999")
+    assert r.status_code == 404
 
     # Delete
     r = await client.delete(f"/api/tasks/{task_id}")
