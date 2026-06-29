@@ -136,6 +136,43 @@
   .btn-test:disabled { opacity: .4; cursor: default; }
 
   .divider { border: none; border-top: 1px solid #1e1e2e; margin: 18px 0; }
+
+  /* SSH Install section */
+  .install-hint {
+    display: none; margin-top: 10px;
+    background: #181825; border: 1.5px solid #313244;
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .install-hint.visible { display: block; }
+  .install-hint-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .install-hint-text { font-size: 12px; color: #6c7086; }
+  .btn-install-toggle {
+    background: none; border: 1.5px solid #cba6f7; border-radius: 6px;
+    color: #cba6f7; font-size: 12px; font-weight: 600; padding: 5px 10px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background .15s;
+  }
+  .btn-install-toggle:hover { background: rgba(203,166,247,.1); }
+
+  .ssh-form { display: none; margin-top: 12px; }
+  .ssh-form.visible { display: block; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+
+  .progress-wrap {
+    display: none; margin-top: 12px;
+    background: #11111b; border: 1.5px solid #313244;
+    border-radius: 8px; padding: 10px 12px;
+    max-height: 160px; overflow-y: auto;
+  }
+  .progress-wrap.visible { display: block; }
+  .progress-log {
+    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 11px; color: #a6adc8; white-space: pre-wrap; word-break: break-all;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
@@ -184,6 +221,36 @@
     </div>
   </div>
 
+  <!-- SSH remote install (shown when test fails on remote mode) -->
+  <div class="install-hint" id="install-hint">
+    <div class="install-hint-row">
+      <span class="install-hint-text">Morpheus not installed on that server?</span>
+      <button class="btn-install-toggle" onclick="toggleSshForm()">Install on Server</button>
+    </div>
+    <div class="ssh-form" id="ssh-form">
+      <div class="field-row" style="margin-top:12px">
+        <div class="field">
+          <label for="ssh-user">SSH Username</label>
+          <input type="text" id="ssh-user" placeholder="ubuntu" value="ubuntu">
+        </div>
+        <div class="field" style="max-width:80px">
+          <label for="ssh-port">Port</label>
+          <input type="text" id="ssh-port" value="22">
+        </div>
+      </div>
+      <div class="field">
+        <label for="ssh-pass">SSH Password</label>
+        <input type="password" id="ssh-pass" placeholder="Password">
+      </div>
+      <button class="btn btn-primary" id="ssh-install-btn" onclick="doRemoteInstall()" style="margin-top:4px">
+        Install Morpheus on Server
+      </button>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-log" id="progress-log"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="btn-row">
     <button class="btn btn-primary" id="connect-btn" onclick="doConnect()">Connect Locally</button>
   </div>
@@ -210,6 +277,9 @@
     document.getElementById("card-local").classList.toggle("selected", m === "local");
     document.getElementById("card-remote").classList.toggle("selected", m === "remote");
     document.getElementById("remote-form").classList.toggle("visible", m === "remote");
+    if (m === "local") {
+      document.getElementById("install-hint").classList.remove("visible");
+    }
     _updateConnectBtn();
   }
 
@@ -243,6 +313,7 @@
     txt.className = "status-text";
     btn.disabled = true;
     testPassed = false;
+    document.getElementById("install-hint").classList.remove("visible");
     _updateConnectBtn();
 
     try {
@@ -253,18 +324,71 @@
         txt.textContent = `Connected successfully${ver}`;
         txt.className = "status-text ok";
         testPassed = true;
+        document.getElementById("install-hint").classList.remove("visible");
       } else {
         dot.className = "status-dot err";
         txt.textContent = res.error || "Connection failed";
         txt.className = "status-text err";
+        document.getElementById("install-hint").classList.add("visible");
+        _prefillSshHost(url);
       }
     } catch (e) {
       dot.className = "status-dot err";
       txt.textContent = "Unexpected error";
       txt.className = "status-text err";
+      document.getElementById("install-hint").classList.add("visible");
+      _prefillSshHost(_buildUrl(document.getElementById("inp-url").value));
     } finally {
       btn.disabled = false;
       _updateConnectBtn();
+    }
+  }
+
+  function _prefillSshHost(url) {
+    try {
+      const h = new URL(url).hostname;
+      if (!document.getElementById("ssh-user").dataset.edited) {
+        document.getElementById("ssh-user").value = "ubuntu";
+      }
+    } catch (_) {}
+  }
+
+  function toggleSshForm() {
+    const form = document.getElementById("ssh-form");
+    form.classList.toggle("visible");
+  }
+
+  async function doRemoteInstall() {
+    const url = _buildUrl(document.getElementById("inp-url").value);
+    let host = "";
+    try { host = new URL(url).hostname; } catch (_) { host = url; }
+    const port     = document.getElementById("ssh-port").value.trim() || "22";
+    const username = document.getElementById("ssh-user").value.trim() || "ubuntu";
+    const password = document.getElementById("ssh-pass").value;
+
+    const logEl  = document.getElementById("progress-log");
+    const wrap   = document.getElementById("progress-wrap");
+    const btn    = document.getElementById("ssh-install-btn");
+
+    logEl.textContent = "";
+    wrap.classList.add("visible");
+    btn.disabled = true;
+    btn.textContent = "Installing…";
+
+    window.electronAPI.onRemoteInstallProgress((msg) => {
+      logEl.textContent += msg;
+      wrap.scrollTop = wrap.scrollHeight;
+    });
+
+    const result = await window.electronAPI.remoteInstall({ host, port, username, password });
+
+    btn.disabled = false;
+    if (result.ok) {
+      btn.textContent = "Installed! Testing connection…";
+      setTimeout(() => testConnection(), 3000);
+    } else {
+      btn.textContent = "Install on Server";
+      logEl.textContent += "\n[error] " + (result.error || "Unknown error");
     }
   }
 
@@ -332,6 +456,7 @@
     document.getElementById("test-dot").className = "status-dot";
     document.getElementById("test-text").textContent = "Enter IP or hostname above";
     document.getElementById("test-text").className = "status-text";
+    document.getElementById("install-hint").classList.remove("visible");
   });
 
   document.getElementById("inp-url").addEventListener("keydown", e => {

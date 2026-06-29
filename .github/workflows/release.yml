@@ -85,7 +85,9 @@ jobs:
         if: needs.prepare.outputs.dry_run == 'true'
         with:
           name: mac-artifacts
-          path: desktop/dist/*.{dmg,zip}
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
 
   # ── Windows ─────────────────────────────────────────────────────────────────
   build-win:
@@ -120,40 +122,3 @@ jobs:
         with:
           name: win-artifacts
           path: desktop/dist/*.exe
-
-  # ── Linux ───────────────────────────────────────────────────────────────────
-  build-linux:
-    needs: prepare
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
-
-      - name: Install system deps for Electron builder
-        run: sudo apt-get install -y rpm
-
-      - name: Install desktop dependencies
-        working-directory: desktop
-        run: npm ci
-
-      - name: Build Linux (x64)
-        working-directory: desktop
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [[ "${{ needs.prepare.outputs.dry_run }}" == "true" ]]; then
-            npx electron-builder --linux --x64 --publish never
-          else
-            npx electron-builder --linux --x64 --publish always
-          fi
-
-      - uses: actions/upload-artifact@v4
-        if: needs.prepare.outputs.dry_run == 'true'
-        with:
-          name: linux-artifacts
-          path: desktop/dist/*.{AppImage,deb,rpm}

@@ -25,4 +25,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   quitApp:       () => ipcRenderer.send("quit-app"),
   getVersion:    () => ipcRenderer.invoke("get-version"),
   openExternal:  (url) => ipcRenderer.send("open-external", url),
+
+  // ── Remote server install ──────────────────────────────────────────────────
+  remoteInstall:          (creds) => ipcRenderer.invoke("remote-install", creds),
+  onRemoteInstallProgress:(cb)    => ipcRenderer.on("remote-install-progress", (_e, msg) => cb(msg)),
 });

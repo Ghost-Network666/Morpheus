@@ -6,8 +6,8 @@ directories:
   buildResources: assets
   output: dist
 
-# Consistent artifact naming across platforms
-artifactName: morpheus-${version}-${arch}.${ext}
+# Consistent artifact naming (no version in filename for stable download links)
+artifactName: morpheus-${arch}.${ext}
 
 # Bundle the Python backend
 extraResources:
@@ -52,7 +52,10 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Morpheus
-  artifactName: morpheus-${version}-setup.${ext}
+  artifactName: morpheus-setup.${ext}
+
+portable:
+  artifactName: morpheus-portable.${ext}
 
 # ── macOS ─────────────────────────────────────────────────────────────────────
 mac:
@@ -77,19 +80,6 @@ dmg:
       y: 220
       type: link
       path: /Applications
-
-# ── Linux ─────────────────────────────────────────────────────────────────────
-linux:
-  icon: assets/icon.png
-  target:
-    - AppImage
-    - deb
-    - rpm
-  category: Utility
-  synopsis: Self-hosted AI workspace
-  description: >
-    Morpheus is a self-hosted AI workspace with chat, agent mode,
-    RAG memory, Obsidian vault integration, and multi-provider AI support.
 
 # ── Publish to GitHub Releases ────────────────────────────────────────────────
 publish:

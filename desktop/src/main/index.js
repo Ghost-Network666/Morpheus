@@ -397,3 +397,18 @@ ipcMain.handle("get-connections", () => ({
 }));
 
 ipcMain.handle("get-version", () => VERSION);
+
+ipcMain.handle("remote-install", (event, { host, port, username, password }) => {
+  const { remoteInstall } = require("./remote-install");
+  return new Promise((resolve) => {
+    remoteInstall(
+      { host, port, username, password },
+      (msg) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("remote-install-progress", msg);
+        }
+      },
+      (err) => resolve({ ok: !err, error: err || null }),
+    );
+  });
+});
