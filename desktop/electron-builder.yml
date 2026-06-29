@@ -68,7 +68,6 @@ mac:
 
 dmg:
   title: "Morpheus ${version}"
-  background: assets/dmg-bg.png
   contents:
     - x: 130
       y: 220

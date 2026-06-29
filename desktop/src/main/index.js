@@ -182,6 +182,7 @@ function _openIntro() {
     webPreferences: { preload: _preload(), contextIsolation: true, nodeIntegration: false },
   });
   introWindow.loadFile(path.join(__dirname, "../renderer/intro.html"));
+  if (IS_DEV) introWindow.webContents.openDevTools({ mode: "detach" });
 }
 
 function _openConnect(fromIntro = false) {
@@ -200,6 +201,7 @@ function _openConnect(fromIntro = false) {
       });
     }
   });
+  if (IS_DEV) connectWindow.webContents.openDevTools({ mode: "detach" });
 }
 
 function _openLoading() {
