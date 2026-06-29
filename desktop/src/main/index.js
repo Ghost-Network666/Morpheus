@@ -128,6 +128,7 @@ function _buildAppMenu() {
           accelerator: isMac ? "Cmd+Shift+C" : "Ctrl+Shift+C",
           click: () => {
             if (mainWindow) { mainWindow.close(); mainWindow = null; }
+            _closeWindow("loading");
             stopServer();
             activeConn = null;
             _openConnect();
@@ -257,6 +258,7 @@ function _closeWindow(which) {
 // ── Connection logic ──────────────────────────────────────────────────────────
 async function _connect(connection) {
   _closeWindow("connect");
+  _closeWindow("loading");
   activeConn = connection;
   setLastConnection(connection.id);
 
@@ -311,6 +313,7 @@ function _refreshTrayMenu() {
       label: "Switch Connection…",
       click: () => {
         if (mainWindow) { mainWindow.close(); mainWindow = null; }
+        _closeWindow("loading");
         stopServer();
         activeConn = null;
         _openConnect();
@@ -363,11 +366,15 @@ ipcMain.on("delete-connection", (_e, id) => {
 });
 
 ipcMain.on("retry-setup", () => {
-  if (activeConn) _connect(activeConn);
+  if (activeConn) {
+    stopServer();
+    _connect(activeConn);
+  }
 });
 
 ipcMain.on("go-to-connect", () => {
   if (mainWindow) { mainWindow.close(); mainWindow = null; }
+  _closeWindow("loading");
   stopServer();
   activeConn = null;
   _openConnect();

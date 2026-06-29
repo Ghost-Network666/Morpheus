@@ -85,9 +85,7 @@ jobs:
         if: needs.prepare.outputs.dry_run == 'true'
         with:
           name: mac-artifacts
-          path: |
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
+          path: desktop/dist/*.dmg
 
   # ── Windows ─────────────────────────────────────────────────────────────────
   build-win:
