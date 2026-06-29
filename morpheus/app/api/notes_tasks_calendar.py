@@ -26,7 +26,7 @@ async def list_notes(db: AsyncSession = Depends(get_db), user: User = Depends(re
 @notes_router.post("")
 async def create_note(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
     body = await request.json()
-    note = Note(user_id=user.id, title=body.get("title", "Untitled"), content=body.get("content", ""), tags=body.get("tags"), pinned=body.get("pinned", False))
+    note = Note(user_id=user.id, title=body.get("title", "Untitled"), content=body.get("content", ""), tags=_tags_str(body.get("tags")), pinned=body.get("pinned", False))
     db.add(note)
     await db.commit()
     await db.refresh(note)
@@ -49,7 +49,9 @@ async def update_note(note_id: int, request: Request, db: AsyncSession = Depends
     if not note:
         raise HTTPException(404, "Note not found")
     body = await request.json()
-    for f in ["title", "content", "tags", "pinned"]:
+    if "tags" in body:
+        note.tags = _tags_str(body.pop("tags"))
+    for f in ["title", "content", "pinned"]:
         if f in body:
             setattr(note, f, body[f])
     note.updated_at = datetime.now(timezone.utc)
@@ -68,8 +70,15 @@ async def delete_note(note_id: int, db: AsyncSession = Depends(get_db), user: Us
     return {"ok": True}
 
 
+def _tags_str(v) -> str | None:
+    if v is None:
+        return None
+    if isinstance(v, list):
+        return ",".join(str(t).strip() for t in v if t)
+    return str(v) or None
+
 def _note_out(n: Note):
-    return {"id": n.id, "title": n.title, "content": n.content, "tags": n.tags, "pinned": n.pinned, "created_at": n.created_at, "updated_at": n.updated_at}
+    return {"id": n.id, "title": n.title, "content": n.content, "tags": n.tags.split(",") if n.tags else [], "pinned": n.pinned, "created_at": n.created_at, "updated_at": n.updated_at}
 
 
 # ── Tasks ────────────────────────────────────────────────────────────────────
@@ -116,6 +125,7 @@ async def create_task(request: Request, db: AsyncSession = Depends(get_db), user
         priority=body.get("priority", "medium"),
         cron_expression=body.get("cron_expression"),
         webhook_url=body.get("webhook_url"),
+        assigned_agent=body.get("assigned_agent"),
     )
     db.add(task)
     await db.commit()
@@ -130,7 +140,7 @@ async def update_task(task_id: int, request: Request, db: AsyncSession = Depends
     if not task:
         raise HTTPException(404, "Task not found")
     body = await request.json()
-    for f in ["title", "description", "completed", "priority", "cron_expression", "webhook_url"]:
+    for f in ["title", "description", "completed", "priority", "cron_expression", "webhook_url", "assigned_agent"]:
         if f in body:
             setattr(task, f, body[f])
     if "due_date" in body:
@@ -152,7 +162,7 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db), user: Us
 
 
 def _task_out(t: Task):
-    return {"id": t.id, "title": t.title, "description": t.description, "due_date": t.due_date, "completed": t.completed, "priority": t.priority, "cron_expression": t.cron_expression, "webhook_url": t.webhook_url, "created_at": t.created_at, "updated_at": t.updated_at}
+    return {"id": t.id, "title": t.title, "description": t.description, "due_date": t.due_date, "completed": t.completed, "priority": t.priority, "assigned_agent": t.assigned_agent, "cron_expression": t.cron_expression, "webhook_url": t.webhook_url, "created_at": t.created_at, "updated_at": t.updated_at}
 
 
 # ── Calendar ─────────────────────────────────────────────────────────────────

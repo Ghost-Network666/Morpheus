@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from app.api.auth import require_user
 from app.models.user import User
@@ -18,7 +18,6 @@ async def run_research(request: Request, user: User = Depends(require_user)):
     provider = body.get("provider", settings.default_provider)
 
     if not topic:
-        from fastapi import HTTPException
         raise HTTPException(400, "topic required")
 
     async def generate():

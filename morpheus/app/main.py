@@ -60,11 +60,6 @@ async def _ensure_admin_user():
             )
             db.add(user)
             await db.commit()
-            if not settings.admin_password:
-                print(f"\n{'='*50}")
-                print(f"  Morpheus Admin Password: {password}")
-                print(f"  Username: {settings.admin_username}")
-                print(f"{'='*50}\n")
 
 
 def create_app() -> FastAPI:

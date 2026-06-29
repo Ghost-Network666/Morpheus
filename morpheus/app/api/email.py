@@ -105,13 +105,13 @@ async def generate_reply(account_id: int, request: Request, db: AsyncSession = D
 
 @router.post("/accounts/{account_id}/triage")
 async def triage_inbox(account_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
-    result = await db.execute(select(EmailMessage).where(EmailMessage.account_id == account_id, EmailMessage.summary_ai == None).limit(10))
+    result = await db.execute(select(EmailMessage).where(EmailMessage.account_id == account_id, EmailMessage.summary_ai.is_(None)).limit(10))
     messages = result.scalars().all()
 
     for msg in messages:
         if not msg.body:
             continue
-        prompt = f"Summarize this email in 1-2 sentences and classify urgency (low/medium/high):\n\nSubject: {msg.subject}\n\n{msg.body[:2000]}"
+        prompt = f"Summarize this email in 1-2 sentences and classify urgency (low/medium/high):\n\nSubject: {msg.subject or '(no subject)'}\n\n{msg.body[:2000]}"
         chat_messages = [{"role": "user", "content": prompt}]
         summary = ""
         async for chunk in stream_chat(chat_messages, settings.default_model, settings.default_provider):

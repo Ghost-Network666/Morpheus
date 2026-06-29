@@ -187,7 +187,8 @@ async def create_token(request: Request, db: AsyncSession = Depends(get_db), use
     )
     db.add(api_token)
     await db.commit()
-    return {"token": raw_token, "name": name, "scopes": scopes}
+    await db.refresh(api_token)
+    return {"id": api_token.id, "token": raw_token, "name": name, "scopes": scopes}
 
 
 @router.get("/tokens")

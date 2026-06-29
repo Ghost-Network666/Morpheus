@@ -305,7 +305,9 @@ async def change_password(request: Request, db: AsyncSession = Depends(get_db), 
     if not new_pw or len(new_pw) < 6:
         raise HTTPException(400, "New password must be at least 6 characters")
 
-    if user.password_hash and not verify_password(current, user.password_hash):
+    # When auth is disabled anyone can access the app anyway, so skip current-password
+    # verification to let users set a password before enabling auth.
+    if app_settings.auth_enabled and user.password_hash and not verify_password(current, user.password_hash):
         raise HTTPException(401, "Current password is incorrect")
 
     user.password_hash = hash_password(new_pw)

@@ -182,7 +182,10 @@ async def write_note(path: str, request: Request):
         result = await db.execute(select(ObsidianNote).where(ObsidianNote.rel_path == path))
         note = result.scalar_one_or_none()
         if note:
-            note.title = title; note.tags = tags; note.content = content; note.modified_at = mtime
+            note.title = title
+            note.tags = tags
+            note.content = content
+            note.modified_at = mtime
         else:
             db.add(ObsidianNote(rel_path=path, title=title, tags=tags, content=content, modified_at=mtime))
         await db.commit()
