@@ -126,9 +126,13 @@ async def run_agent_endpoint(request: Request, db: AsyncSession = Depends(get_db
     provider = body.get("provider", settings.default_provider)
     tools = body.get("tools")
     ssh_profile_id = body.get("ssh_profile_id")
+    memory_source = body.get("memory_source")
 
     async def generate():
-        async for chunk in run_agent(message, model=model, provider=provider, tools=tools, ssh_profile_id=ssh_profile_id):
+        async for chunk in run_agent(
+            message, model=model, provider=provider, tools=tools,
+            ssh_profile_id=ssh_profile_id, memory_source=memory_source
+        ):
             yield f"data: {json.dumps({'content': chunk})}\n\n"
         yield "data: [DONE]\n\n"
 

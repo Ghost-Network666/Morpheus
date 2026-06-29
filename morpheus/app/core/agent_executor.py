@@ -1,9 +1,15 @@
 import json
 import asyncio
+import contextvars
 from typing import AsyncIterator, Optional, Callable
 from app.config import settings
 from app.core.chat_engine import stream_chat
 from app.core import search_engine
+
+# Per-request memory source (safe for concurrent async tasks)
+_memory_source_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "memory_source", default="local"
+)
 
 
 TOOL_REGISTRY: dict[str, dict] = {}
@@ -99,6 +105,36 @@ register_tool(
 )
 
 
+async def _tool_memory_search(query: str, n: int = 5) -> str:
+    from app.core.memory import retrieve
+    source = _memory_source_var.get()
+    results = await retrieve(query, source=source, n=n)
+    if not results:
+        return "No relevant memories found."
+    return "\n---\n".join(results)
+
+
+async def _tool_remember(content: str) -> str:
+    from app.core.memory import store
+    ok = await store(content, metadata={"source": "agent"})
+    return "Stored in memory." if ok else "Memory storage unavailable."
+
+
+register_tool(
+    "memory_search",
+    "Search your personal memory (uploaded documents and Obsidian vault notes) for relevant information",
+    {"type": "object", "properties": {"query": {"type": "string", "description": "What to search for"}, "n": {"type": "integer", "default": 5}}, "required": ["query"]},
+    _tool_memory_search,
+)
+
+register_tool(
+    "remember",
+    "Save a piece of information to local memory for future retrieval",
+    {"type": "object", "properties": {"content": {"type": "string", "description": "Text to remember"}}, "required": ["content"]},
+    _tool_remember,
+)
+
+
 # ── ReAct Agent ────────────────────────────────────────────────────────────────
 
 REACT_SYSTEM = """You are Morpheus, a capable AI assistant with access to tools.
@@ -128,10 +164,14 @@ async def run_agent(
     provider: str = None,
     max_iterations: int = 8,
     ssh_profile_id: Optional[int] = None,
+    memory_source: str = None,
 ) -> AsyncIterator[str]:
     model = model or settings.default_model
     provider = provider or settings.default_provider
     available_tools = tools or list(TOOL_REGISTRY.keys())
+
+    # Set memory source for this task's context
+    _memory_source_var.set(memory_source or getattr(settings, "memory_source", "local"))
 
     tool_descriptions = "\n".join(
         f"- {name}: {TOOL_REGISTRY[name]['description']}"

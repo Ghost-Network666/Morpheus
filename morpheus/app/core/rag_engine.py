@@ -5,6 +5,7 @@ from app.config import settings
 
 _client = None
 _collection = None
+_embed_model = None  # singleton — loading fastembed is expensive
 
 
 def _get_collection():
@@ -34,11 +35,17 @@ def _get_collection():
     return _collection
 
 
+def _get_embed_model():
+    global _embed_model
+    if _embed_model is None:
+        from fastembed import TextEmbedding
+        _embed_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    return _embed_model
+
+
 def _embed(texts: list[str]) -> list[list[float]]:
     try:
-        from fastembed import TextEmbedding
-        model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5")
-        return [list(e) for e in model.embed(texts)]
+        return [list(e) for e in _get_embed_model().embed(texts)]
     except Exception:
         return [[0.0] * 384 for _ in texts]
 

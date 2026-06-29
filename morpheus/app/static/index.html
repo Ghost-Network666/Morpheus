@@ -188,6 +188,11 @@
               <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2)">
                 <input type="checkbox" id="agent-toggle"> Agent mode
               </label>
+              <select id="memory-source-select" class="input-sm" title="Memory source for this chat" style="display:none;width:auto">
+                <option value="local">Memory: Local</option>
+                <option value="obsidian">Memory: Vault</option>
+                <option value="both">Memory: Both</option>
+              </select>
               <div class="header-spacer"></div>
               <button id="chat-delete-btn" class="btn-icon" title="Delete chat">
                 <svg viewBox="0 0 16 16" fill="currentColor" style="width:16px;height:16px"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5zm-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5z"/></svg>
@@ -496,6 +501,17 @@
             <div class="form-group">
               <label class="form-label">Anthropic API Key</label>
               <input id="setting-anthropic-key" type="password" placeholder="sk-ant-…">
+            </div>
+            <div class="toggle-row" style="margin-top:12px">
+              <div>
+                <div class="toggle-label">Agent Memory Source</div>
+                <div class="toggle-desc">Where the agent looks when searching your personal knowledge</div>
+              </div>
+              <select id="setting-memory-source" style="width:160px">
+                <option value="local">Local (ChromaDB)</option>
+                <option value="obsidian">Obsidian Vault</option>
+                <option value="both">Both</option>
+              </select>
             </div>
           </div>
 

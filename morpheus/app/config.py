@@ -79,6 +79,9 @@ class Settings(BaseSettings):
     obsidian_vault_path: Optional[str] = Field(None, env="OBSIDIAN_VAULT_PATH")
     module_obsidian: bool = Field(True, env="MODULE_OBSIDIAN")
 
+    # Memory source for agent context retrieval: local | obsidian | both
+    memory_source: str = Field("local", env="MEMORY_SOURCE")
+
     # Discovery
     discovery_mdns: bool = Field(True, env="DISCOVERY_MDNS")
     discovery_tailscale: bool = Field(True, env="DISCOVERY_TAILSCALE")

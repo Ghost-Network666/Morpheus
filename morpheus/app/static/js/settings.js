@@ -165,6 +165,9 @@ function _renderFields() {
   _check("setting-chroma-in-process", s.chroma_in_process !== false);
   _set("setting-chroma-host", s.chroma_host || "localhost");
   _set("setting-chroma-port", s.chroma_port != null ? String(s.chroma_port) : "8000");
+
+  // Memory source
+  _set("setting-memory-source", s.memory_source || "local");
 }
 
 function _set(id, value, attr = "value", attrVal) {
@@ -245,6 +248,10 @@ async function _save() {
   updates.auth_enabled        = document.getElementById("setting-auth-enabled")?.checked ?? false;
   updates.app_debug           = document.getElementById("setting-app-debug")?.checked    ?? false;
   updates.chroma_in_process   = document.getElementById("setting-chroma-in-process")?.checked ?? true;
+
+  // Memory source
+  const memorySrc = document.getElementById("setting-memory-source")?.value;
+  if (memorySrc) updates.memory_source = memorySrc;
 
   try {
     await API.settings.update(updates);

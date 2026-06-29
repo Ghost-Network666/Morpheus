@@ -184,6 +184,15 @@ function setupInputHandlers() {
   const newBtn = document.getElementById("chat-new-btn");
   if (newBtn) newBtn.addEventListener("click", newSession);
 
+  // Show memory source selector only when agent mode is active
+  const agentToggleEl = document.getElementById("agent-toggle");
+  const memorySelect = document.getElementById("memory-source-select");
+  if (agentToggleEl && memorySelect) {
+    agentToggleEl.addEventListener("change", () => {
+      memorySelect.style.display = agentToggleEl.checked ? "inline-block" : "none";
+    });
+  }
+
   const sendBtn = document.getElementById("chat-send-btn");
   if (sendBtn) sendBtn.addEventListener("click", sendMessage);
 
@@ -226,6 +235,7 @@ async function sendMessage() {
 
   const model = modelSel?.value || "llama3.2:3b";
   const useAgent = agentToggle?.checked || false;
+  const memorySource = document.getElementById("memory-source-select")?.value || "local";
 
   input.value = "";
   if (input) input.style.height = "auto";
@@ -242,7 +252,7 @@ async function sendMessage() {
   try {
     const provider = _getProvider(model);
     const streamFn = useAgent
-      ? (cb) => API.chat.runAgent({ message: content, model, provider }, cb)
+      ? (cb) => API.chat.runAgent({ message: content, model, provider, memory_source: memorySource }, cb)
       : (cb) => API.chat.sendMessage(_activeSession.id, { content, model, provider }, cb);
 
     await streamFn((chunk) => {

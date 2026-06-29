@@ -52,6 +52,8 @@ _ENV_MAP = {
     "module_documents":   "MODULE_DOCUMENTS",
     "module_cookbook":    "MODULE_COOKBOOK",
     "module_connections": "MODULE_CONNECTIONS",
+    "module_obsidian":   "MODULE_OBSIDIAN",
+    "memory_source":     "MEMORY_SOURCE",
 }
 
 
@@ -150,6 +152,9 @@ SYSTEM_KEYS = {
     "module_documents":  "module_documents",
     "module_cookbook":   "module_cookbook",
     "module_connections": "module_connections",
+    "module_obsidian":   "module_obsidian",
+    # Memory
+    "memory_source":     "memory_source",
 }
 
 # Keys whose values are masked in GET responses (show placeholder if set)
