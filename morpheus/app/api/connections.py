@@ -12,6 +12,18 @@ from app.utils.backup import create_backup, restore_backup
 router = APIRouter(prefix="/api/connections", tags=["connections"])
 
 
+# ── Status ───────────────────────────────────────────────────────────────────
+
+@router.get("")
+async def connections_status(db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
+    result = await db.execute(select(VaultItem).where(VaultItem.user_id == user.id))
+    items = result.scalars().all()
+    return {
+        "vault_items": len(items),
+        "categories": list({v.category for v in items}),
+    }
+
+
 # ── Discovery ─────────────────────────────────────────────────────────────────
 
 @router.get("/discover")

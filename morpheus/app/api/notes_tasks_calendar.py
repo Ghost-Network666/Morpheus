@@ -185,13 +185,18 @@ async def list_events(db: AsyncSession = Depends(get_db), user: User = Depends(r
 
 @calendar_router.post("")
 async def create_event(request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
+    from datetime import timedelta
     body = await request.json()
+    start = _parse_dt(body.get("start") or body.get("start_time"))
+    end = _parse_dt(body.get("end") or body.get("end_time"))
+    if start and not end:
+        end = start + timedelta(hours=1)
     event = CalendarEvent(
         user_id=user.id,
-        summary=body["summary"],
+        summary=body.get("summary") or body.get("title", "Untitled"),
         description=body.get("description"),
-        start=_parse_dt(body["start"]),
-        end=_parse_dt(body["end"]),
+        start=start,
+        end=end,
         all_day=body.get("all_day", False),
         location=body.get("location"),
     )
@@ -209,13 +214,15 @@ async def update_event(event_id: int, request: Request, db: AsyncSession = Depen
     if not event:
         raise HTTPException(404, "Event not found")
     body = await request.json()
+    if "title" in body and "summary" not in body:
+        body["summary"] = body["title"]
     for f in ["summary", "description", "all_day", "location"]:
         if f in body:
             setattr(event, f, body[f])
-    if "start" in body:
-        event.start = _parse_dt(body["start"])
-    if "end" in body:
-        event.end = _parse_dt(body["end"])
+    if "start" in body or "start_time" in body:
+        event.start = _parse_dt(body.get("start") or body.get("start_time"))
+    if "end" in body or "end_time" in body:
+        event.end = _parse_dt(body.get("end") or body.get("end_time"))
     await db.commit()
     await broadcast(user.id, "calendar_changed", {"action": "update", "id": event.id})
     return _event_out(event)

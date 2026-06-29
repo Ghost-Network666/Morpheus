@@ -57,6 +57,17 @@ async def get_session(session_id: int, db: AsyncSession = Depends(get_db), user:
     }
 
 
+@router.get("/sessions/{session_id}/messages")
+async def list_messages(session_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
+    result = await db.execute(select(ChatSession).where(ChatSession.id == session_id, ChatSession.user_id == user.id))
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(404, "Session not found")
+    result = await db.execute(select(ChatMessage).where(ChatMessage.session_id == session_id))
+    messages = result.scalars().all()
+    return [{"id": m.id, "role": m.role, "content": m.content, "created_at": m.created_at, "model_used": m.model_used} for m in messages]
+
+
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
     result = await db.execute(select(ChatSession).where(ChatSession.id == session_id, ChatSession.user_id == user.id))
