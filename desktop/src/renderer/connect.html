@@ -15,60 +15,62 @@
     user-select: none;
   }
 
-  /* Drag region only on top bar */
   .titlebar {
-    height: 36px; display: flex; align-items: center; justify-content: center;
-    position: relative;
+    height: 40px; display: flex; align-items: center; justify-content: center;
+    position: relative; flex-shrink: 0;
   }
-  .titlebar .logo { font-size: 14px; color: #6c7086; letter-spacing: .1em; }
+  .titlebar .logo { font-size: 13px; color: #585b70; letter-spacing: .12em; font-weight: 600; }
+  .titlebar .ver  { font-size: 11px; color: #45475a; margin-left: 6px; }
   .close-btn {
     position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: #6c7086; cursor: pointer;
-    font-size: 16px; line-height: 1; padding: 4px;
+    background: none; border: none; color: #45475a; cursor: pointer;
+    font-size: 18px; line-height: 1; padding: 4px 6px;
+    border-radius: 4px;
     -webkit-app-region: no-drag;
+    transition: color .15s, background .15s;
   }
-  .close-btn:hover { color: #f38ba8; }
+  .close-btn:hover { color: #f38ba8; background: rgba(243,139,168,.1); }
 
   .content {
-    padding: 0 36px 28px;
+    padding: 4px 36px 28px;
     overflow-y: auto;
-    height: calc(100% - 36px);
+    height: calc(100% - 40px);
     -webkit-app-region: no-drag;
   }
 
-  .heading { text-align: center; margin-bottom: 28px; }
-  .heading .icon { font-size: 38px; margin-bottom: 10px; }
+  .heading { text-align: center; margin-bottom: 28px; padding-top: 8px; }
+  .heading .icon { font-size: 36px; margin-bottom: 10px; }
   .heading h1 { font-size: 20px; font-weight: 700; color: #cba6f7; }
-  .heading p { font-size: 13px; color: #6c7086; margin-top: 4px; }
+  .heading p { font-size: 13px; color: #6c7086; margin-top: 5px; line-height: 1.5; }
 
   /* Mode cards */
   .mode-row { display: flex; gap: 12px; margin-bottom: 24px; }
   .mode-card {
     flex: 1; background: #181825; border: 2px solid #313244;
-    border-radius: 12px; padding: 18px 14px; text-align: center;
-    cursor: pointer; transition: border-color .15s, background .15s;
+    border-radius: 12px; padding: 20px 14px; text-align: center;
+    cursor: pointer; transition: border-color .15s, background .15s, transform .1s;
   }
-  .mode-card:hover { border-color: #cba6f7; background: #1e1e2e; }
-  .mode-card.selected { border-color: #cba6f7; background: #2a2639; }
-  .mode-card .mi { font-size: 28px; margin-bottom: 8px; }
-  .mode-card strong { display: block; font-size: 14px; color: #cdd6f4; margin-bottom: 3px; }
-  .mode-card small { font-size: 12px; color: #6c7086; line-height: 1.4; }
+  .mode-card:hover { border-color: #7c6fa0; background: #1e1e2e; transform: translateY(-1px); }
+  .mode-card.selected { border-color: #cba6f7; background: #211e30; }
+  .mode-card .mi { font-size: 26px; margin-bottom: 9px; }
+  .mode-card strong { display: block; font-size: 14px; color: #cdd6f4; margin-bottom: 4px; }
+  .mode-card small { font-size: 12px; color: #585b70; line-height: 1.4; }
 
   /* Remote form */
   .remote-form { display: none; margin-bottom: 20px; }
   .remote-form.visible { display: block; }
-  label { display: block; font-size: 12px; color: #a6adc8; margin-bottom: 5px; }
+  label { display: block; font-size: 12px; color: #a6adc8; margin-bottom: 5px; font-weight: 500; }
+  .field { margin-bottom: 12px; }
   input[type="text"], input[type="url"] {
     width: 100%; padding: 9px 12px;
-    background: #181825; border: 1px solid #313244;
+    background: #181825; border: 1.5px solid #313244;
     border-radius: 8px; color: #cdd6f4; font-size: 14px;
     outline: none; transition: border-color .15s;
-    margin-bottom: 10px;
   }
   input:focus { border-color: #cba6f7; }
   input::placeholder { color: #45475a; }
 
-  .test-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .test-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
   .status-dot {
     width: 8px; height: 8px; border-radius: 9999px;
     background: #313244; flex-shrink: 0;
@@ -76,71 +78,81 @@
   }
   .status-dot.ok  { background: #a6e3a1; }
   .status-dot.err { background: #f38ba8; }
-  .status-text { font-size: 12px; color: #6c7086; }
+  .status-dot.spin {
+    background: #cba6f7;
+    animation: pulse .8s ease-in-out infinite alternate;
+  }
+  @keyframes pulse { to { opacity: .3; } }
+  .status-text { font-size: 12px; color: #585b70; }
   .status-text.ok  { color: #a6e3a1; }
   .status-text.err { color: #f38ba8; }
 
   /* Saved connections */
-  .saved-section { margin-bottom: 20px; }
-  .saved-label { font-size: 12px; color: #6c7086; margin-bottom: 8px; letter-spacing: .05em; text-transform: uppercase; }
+  .saved-section { margin-bottom: 16px; }
+  .saved-label {
+    font-size: 11px; color: #45475a; margin-bottom: 8px;
+    letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+  }
   .saved-list { display: flex; flex-direction: column; gap: 6px; }
   .saved-item {
     display: flex; align-items: center; gap: 10px;
-    background: #181825; border: 1px solid #313244;
+    background: #181825; border: 1.5px solid #313244;
     border-radius: 8px; padding: 10px 12px; cursor: pointer;
     transition: border-color .15s;
   }
   .saved-item:hover { border-color: #585b70; }
-  .saved-item .si-icon { font-size: 16px; }
+  .saved-item .si-icon { font-size: 15px; flex-shrink: 0; }
   .saved-item .si-info { flex: 1; min-width: 0; }
-  .saved-item .si-name { font-size: 13px; font-weight: 500; truncate-text: ellipsis; }
-  .saved-item .si-url  { font-size: 11px; color: #6c7086; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-item .si-name { font-size: 13px; font-weight: 500; color: #cdd6f4; }
+  .saved-item .si-url  { font-size: 11px; color: #585b70; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
   .saved-item .si-del {
     background: none; border: none; color: #45475a;
-    cursor: pointer; font-size: 16px; padding: 2px 4px;
+    cursor: pointer; font-size: 14px; padding: 3px 5px;
     border-radius: 4px; flex-shrink: 0;
+    transition: color .15s, background .15s;
   }
-  .saved-item .si-del:hover { color: #f38ba8; background: #2a1e2e; }
+  .saved-item .si-del:hover { color: #f38ba8; background: rgba(243,139,168,.1); }
 
   /* Buttons */
-  .btn-row { display: flex; gap: 8px; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
   .btn {
     flex: 1; padding: 11px 16px; border-radius: 8px; border: none;
     font-size: 14px; font-weight: 600; cursor: pointer;
-    transition: opacity .15s;
+    transition: opacity .15s, transform .1s;
   }
-  .btn:hover { opacity: .85; }
-  .btn:disabled { opacity: .4; cursor: default; }
-  .btn-primary { background: #cba6f7; color: #1e1e2e; }
+  .btn:hover:not(:disabled) { opacity: .88; transform: translateY(-1px); }
+  .btn:active:not(:disabled) { transform: none; }
+  .btn:disabled { opacity: .35; cursor: default; }
+  .btn-primary  { background: #cba6f7; color: #1e1e2e; }
   .btn-secondary { background: #313244; color: #cdd6f4; }
 
   .btn-test {
-    padding: 9px 14px; border-radius: 8px; border: 1px solid #313244;
-    background: #181825; color: #a6adc8; font-size: 13px;
+    padding: 9px 14px; border-radius: 8px; border: 1.5px solid #313244;
+    background: transparent; color: #a6adc8; font-size: 13px;
     cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    transition: border-color .15s;
+    transition: border-color .15s, color .15s;
   }
-  .btn-test:hover { border-color: #cba6f7; color: #cba6f7; }
+  .btn-test:hover:not(:disabled) { border-color: #cba6f7; color: #cba6f7; }
   .btn-test:disabled { opacity: .4; cursor: default; }
 
-  .divider { border: none; border-top: 1px solid #313244; margin: 20px 0; }
+  .divider { border: none; border-top: 1px solid #1e1e2e; margin: 18px 0; }
 </style>
 </head>
 <body>
 
 <div class="titlebar">
   <span class="logo">◈ MORPHEUS</span>
+  <span class="ver" id="ver"></span>
   <button class="close-btn" onclick="window.electronAPI?.quitApp()" title="Quit">✕</button>
 </div>
 
 <div class="content">
   <div class="heading">
-    <div class="icon">🔗</div>
+    <div class="icon">◈</div>
     <h1>Connect to Morpheus</h1>
-    <p>Run locally on this machine, or connect to your server</p>
+    <p>Run locally on this machine, or connect to a server</p>
   </div>
 
-  <!-- Mode selector -->
   <div class="mode-row">
     <div class="mode-card selected" id="card-local" onclick="selectMode('local')">
       <div class="mi">💻</div>
@@ -154,30 +166,30 @@
     </div>
   </div>
 
-  <!-- Remote form -->
   <div class="remote-form" id="remote-form">
-    <label for="inp-name">Connection name</label>
-    <input type="text" id="inp-name" placeholder="My Server" value="">
-
-    <label for="inp-url">Server URL</label>
-    <div class="test-row">
-      <input type="url" id="inp-url" placeholder="http://192.168.1.100:7860" style="margin-bottom:0;flex:1">
-      <button class="btn-test" id="test-btn" onclick="testConnection()">Test</button>
+    <div class="field">
+      <label for="inp-name">Connection name</label>
+      <input type="text" id="inp-name" placeholder="Home Server">
     </div>
-    <div class="test-row" style="margin-bottom:0;margin-top:4px">
-      <div class="status-dot" id="test-dot"></div>
-      <span class="status-text" id="test-text">Enter your server URL above</span>
+    <div class="field">
+      <label for="inp-url">Server URL</label>
+      <div class="test-row">
+        <input type="url" id="inp-url" placeholder="http://192.168.1.100:7860" style="flex:1">
+        <button class="btn-test" id="test-btn" onclick="testConnection()">Test</button>
+      </div>
+      <div class="test-row" style="margin-top:2px">
+        <div class="status-dot" id="test-dot"></div>
+        <span class="status-text" id="test-text">Enter your server URL above</span>
+      </div>
     </div>
   </div>
 
-  <!-- Connect button -->
-  <div class="btn-row" style="margin-top:16px">
+  <div class="btn-row">
     <button class="btn btn-primary" id="connect-btn" onclick="doConnect()">Connect Locally</button>
   </div>
 
-  <!-- Saved remote connections -->
   <div class="saved-section" id="saved-section" style="display:none">
-    <hr class="divider">
+    <div class="divider"></div>
     <div class="saved-label">Saved connections</div>
     <div class="saved-list" id="saved-list"></div>
   </div>
@@ -187,6 +199,10 @@
   let mode = "local";
   let testPassed = false;
   let connections = [];
+
+  window.electronAPI?.getVersion().then(v => {
+    if (v) document.getElementById("ver").textContent = "v" + v;
+  });
 
   function selectMode(m) {
     mode = m;
@@ -214,7 +230,7 @@
     const dot  = document.getElementById("test-dot");
     const txt  = document.getElementById("test-text");
     const btn  = document.getElementById("test-btn");
-    dot.className = "status-dot";
+    dot.className = "status-dot spin";
     txt.textContent = "Testing…";
     txt.className = "status-text";
     btn.disabled = true;
@@ -225,7 +241,8 @@
       const res = await window.electronAPI.testRemoteUrl(url);
       if (res.ok) {
         dot.className = "status-dot ok";
-        txt.textContent = "Connected successfully";
+        const ver = res.data?.version ? ` (v${res.data.version})` : "";
+        txt.textContent = `Connected successfully${ver}`;
         txt.className = "status-text ok";
         testPassed = true;
       } else {
@@ -273,7 +290,7 @@
           <div class="si-name">${_esc(c.name)}</div>
           <div class="si-url">${_esc(c.url)}</div>
         </div>
-        <button class="si-del" title="Remove" onclick="event.stopPropagation();removeSaved('${c.id}')">✕</button>
+        <button class="si-del" title="Remove" onclick="event.stopPropagation();removeSaved('${_esc(c.id)}')">✕</button>
       `;
       row.addEventListener("click", () => {
         document.getElementById("inp-url").value = c.url;
@@ -292,21 +309,15 @@
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  // Receive connections from main
   window.electronAPI?.onConnectionsData(data => {
     connections = data.connections || [];
     _renderSaved();
   });
 
-  // Also request on load
   window.electronAPI?.getConnections().then(data => {
-    if (data) {
-      connections = data.connections || [];
-      _renderSaved();
-    }
+    if (data) { connections = data.connections || []; _renderSaved(); }
   });
 
-  // URL input clears test state
   document.getElementById("inp-url").addEventListener("input", () => {
     testPassed = false;
     _updateConnectBtn();
@@ -315,7 +326,6 @@
     document.getElementById("test-text").className = "status-text";
   });
 
-  // Allow Enter key to trigger test or connect
   document.getElementById("inp-url").addEventListener("keydown", e => {
     if (e.key === "Enter") testPassed ? doConnect() : testConnection();
   });

@@ -1,5 +1,5 @@
 "use strict";
-const { app, BrowserWindow, Tray, Menu, shell, ipcMain, net } = require("electron");
+const { app, BrowserWindow, Tray, Menu, shell, ipcMain, net, dialog } = require("electron");
 const path = require("path");
 const {
   isFirstLaunch, markIntroSeen,
@@ -10,16 +10,49 @@ const {
 const { startServer, stopServer } = require("./server");
 
 const IS_DEV = process.argv.includes("--dev");
+const VERSION = app.getVersion();
 
 let mainWindow    = null;
 let introWindow   = null;
 let connectWindow = null;
 let loadingWindow = null;
 let tray          = null;
-let activeConn    = null;  // currently active connection object
+let activeConn    = null;
+
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+function _initUpdater() {
+  if (IS_DEV) return;
+  try {
+    const { autoUpdater } = require("electron-updater");
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on("update-downloaded", (info) => {
+      const choice = dialog.showMessageBoxSync({
+        type: "info",
+        title: "Update ready",
+        message: `Morpheus ${info.version} has been downloaded.`,
+        detail: "Restart now to install the update, or it will install automatically when you quit.",
+        buttons: ["Restart Now", "Later"],
+        defaultId: 0,
+      });
+      if (choice === 0) autoUpdater.quitAndInstall();
+    });
+
+    autoUpdater.on("error", () => {}); // silent — don't bother user with update errors
+
+    // Check after a short delay so the main window is visible first
+    setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 8000);
+  } catch (_) {
+    // electron-updater may not be installed in dev
+  }
+}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
+  _buildAppMenu();
+  _initUpdater();
+
   if (isFirstLaunch()) {
     _openIntro();
   } else {
@@ -42,6 +75,100 @@ app.on("activate", () => {
 });
 
 app.on("before-quit", () => stopServer());
+
+// ── Native app menu ───────────────────────────────────────────────────────────
+function _buildAppMenu() {
+  const isMac = process.platform === "darwin";
+
+  const template = [
+    ...(isMac ? [{
+      label: app.name,
+      submenu: [
+        {
+          label: `About Morpheus`,
+          click: _showAbout,
+        },
+        { type: "separator" },
+        { role: "services" },
+        { type: "separator" },
+        { role: "hide" },
+        { role: "hideOthers" },
+        { role: "unhide" },
+        { type: "separator" },
+        { label: "Quit Morpheus", accelerator: "Cmd+Q", click: _quit },
+      ],
+    }] : []),
+    {
+      label: "Edit",
+      submenu: [
+        { role: "undo" }, { role: "redo" },
+        { type: "separator" },
+        { role: "cut" }, { role: "copy" }, { role: "paste" },
+        { role: "selectAll" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { role: "reload" },
+        { role: "toggleDevTools", visible: IS_DEV },
+        { type: "separator" },
+        { role: "resetZoom" },
+        { role: "zoomIn" },
+        { role: "zoomOut" },
+        { type: "separator" },
+        { role: "togglefullscreen" },
+      ],
+    },
+    {
+      label: "Connection",
+      submenu: [
+        {
+          label: "Switch Connection…",
+          accelerator: isMac ? "Cmd+Shift+C" : "Ctrl+Shift+C",
+          click: () => {
+            if (mainWindow) { mainWindow.close(); mainWindow = null; }
+            stopServer();
+            activeConn = null;
+            _openConnect();
+          },
+        },
+        {
+          label: "Open in Browser",
+          accelerator: isMac ? "Cmd+Shift+B" : "Ctrl+Shift+B",
+          click: () => activeConn && shell.openExternal(activeConn.url),
+        },
+      ],
+    },
+    {
+      label: "Help",
+      submenu: [
+        {
+          label: "GitHub Repository",
+          click: () => shell.openExternal("https://github.com/Ghost-Network666/Morpheus"),
+        },
+        {
+          label: "Report an Issue",
+          click: () => shell.openExternal("https://github.com/Ghost-Network666/Morpheus/issues"),
+        },
+        { type: "separator" },
+        ...(!isMac ? [{ label: `About Morpheus v${VERSION}`, click: _showAbout }] : []),
+      ],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function _showAbout() {
+  dialog.showMessageBox({
+    type: "info",
+    title: "Morpheus",
+    message: `Morpheus v${VERSION}`,
+    detail: "Self-hosted AI workspace\n\nLocal AI chat, agent mode, notes, tasks, calendar, SSH, RAG memory, and more.\n\nhttps://github.com/Ghost-Network666/Morpheus",
+    buttons: ["OK"],
+  });
+}
 
 // ── Window helpers ────────────────────────────────────────────────────────────
 function _preload() {
@@ -92,6 +219,7 @@ function _openMain(url) {
     minWidth: 900, minHeight: 600,
     title: "Morpheus",
     show: false,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: _preload(),
       contextIsolation: true,
@@ -100,7 +228,10 @@ function _openMain(url) {
   });
 
   mainWindow.loadURL(url);
-  mainWindow.once("ready-to-show", () => mainWindow.show());
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+    _refreshTrayMenu();
+  });
   mainWindow.on("closed", () => { mainWindow = null; });
 
   mainWindow.webContents.setWindowOpenHandler(({ url: openUrl }) => {
@@ -138,7 +269,6 @@ async function _connect(connection) {
       if (!lwin.isDestroyed()) lwin.webContents.send("setup-error", err.message || String(err));
     }
   } else {
-    // Remote: load the server's UI directly
     _openMain(connection.url);
   }
 }
@@ -153,7 +283,7 @@ function _createTray() {
     ? path.join(assetsDir, "icon.ico")
     : path.join(assetsDir, "icon.png");
   tray = new Tray(icon);
-  tray.setToolTip("Morpheus");
+  tray.setToolTip(`Morpheus v${VERSION}`);
   _refreshTrayMenu();
   tray.on("click", () => {
     if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
@@ -172,12 +302,15 @@ function _refreshTrayMenu() {
       },
     },
     activeConn
-      ? { label: `Connected: ${activeConn.name}`, enabled: false }
+      ? { label: `${activeConn.name}`, enabled: false }
       : { label: "Not connected", enabled: false },
+    { type: "separator" },
     {
       label: "Switch Connection…",
       click: () => {
         if (mainWindow) { mainWindow.close(); mainWindow = null; }
+        stopServer();
+        activeConn = null;
         _openConnect();
       },
     },
@@ -187,6 +320,7 @@ function _refreshTrayMenu() {
       enabled: !!activeConn,
     },
     { type: "separator" },
+    { label: `v${VERSION}`, enabled: false },
     { label: "Quit Morpheus", click: _quit },
   ]));
 }
@@ -257,3 +391,5 @@ ipcMain.handle("get-connections", () => ({
   connections: getConnections(),
   last: getLastConnection(),
 }));
+
+ipcMain.handle("get-version", () => VERSION);

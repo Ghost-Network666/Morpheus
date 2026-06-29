@@ -1,69 +1,74 @@
 # Morpheus — Self-Hosted AI Workspace
 
-A powerful, privacy-first AI workspace that runs entirely on your own hardware. Chat with local or cloud AI models, manage notes, tasks, and calendar, browse and edit files, run a full terminal, and more — all from a single self-hosted web app.
+A privacy-first AI workspace that runs entirely on your own hardware. No accounts. No cloud. No data leaves your machine.
 
-Runs on **macOS**, **Windows**, and **Linux**. Works locally or connects to a remote Ubuntu server over SSH.
+Chat with local or cloud AI, manage notes, tasks, and calendar, run a full terminal, search the web, and more — all from a single self-hosted app.
+
+---
+
+## Download
+
+Get the desktop app for your platform. No account needed — just download and run.
+
+| Platform | Download |
+|---|---|
+| **Windows** (x64, installer) | [morpheus-1.0.0-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-setup.exe) |
+| **Windows** (x64, portable) | [morpheus-1.0.0-x64.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.exe) |
+| **macOS** (Apple Silicon) | [morpheus-1.0.0-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-arm64.dmg) |
+| **macOS** (Intel) | [morpheus-1.0.0-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.dmg) |
+| **Linux** (AppImage) | [morpheus-1.0.0-x64.AppImage](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.AppImage) |
+| **Linux** (deb) | [morpheus-1.0.0-x64.deb](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.deb) |
+| **Linux** (rpm) | [morpheus-1.0.0-x64.rpm](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.rpm) |
+
+> **macOS note:** The app is not code-signed. On first launch, right-click → Open → Open to bypass Gatekeeper.
+>
+> **Windows note:** SmartScreen may warn about an unknown publisher — click "More info → Run anyway".
+
+All releases: [github.com/Ghost-Network666/Morpheus/releases](https://github.com/Ghost-Network666/Morpheus/releases)
+
+---
+
+## Two Ways to Run
+
+### Desktop App (recommended)
+Download above. On first launch, choose **Local** (runs Python on your machine) or **Remote** (connects to your server). Updates automatically.
+
+### Self-Hosted Server (headless / Docker)
+Run Morpheus on a server and connect from the desktop app or any browser. See [Server Setup](#server-setup) below.
 
 ---
 
 ## Features
 
-| Module | Description |
+| Module | What it does |
 |---|---|
-| **Chat** | Streaming chat with Ollama, OpenAI, and Anthropic — persistent sessions |
-| **Agent** | ReAct agent with shell execution, web search, and file I/O tools |
-| **Terminal** | Full PTY terminal (local or SSH remote) via xterm.js |
-| **SSH** | Saved SSH profiles, one-click connect, remote terminal |
-| **Models** | Hardware detection, Ollama model management, and recommendations |
-| **RAG** | Upload PDFs and docs, semantic search via ChromaDB + fastembed |
+| **Chat** | Streaming chat with Ollama, OpenAI, Anthropic — persistent sessions |
+| **Agent** | ReAct agent with shell, web search, and file tools |
+| **Terminal** | Full PTY terminal via xterm.js |
+| **SSH** | Saved profiles, one-click remote terminal |
 | **Research** | Agentic web research — search → read → synthesise → report |
-| **Notes** | Markdown notes with autosave and pinning |
-| **Tasks** | Todo list with priority levels, due dates, filtering, and cron support |
-| **Calendar** | Events, CalDAV sync, and .ics export |
+| **RAG** | Upload PDFs, semantic search via ChromaDB |
+| **Notes** | Markdown notes, pinning, tags |
+| **Tasks** | Priority, due dates, cron triggers |
+| **Calendar** | Events and .ics export |
 | **Email** | IMAP fetch, AI triage, reply drafting |
-| **Documents** | File browser, inline editor, AI suggestions |
-| **Vault** | AES-256 encrypted secret storage |
-| **Settings** | Per-module toggles, dark/light theme, provider configuration |
+| **Documents** | File browser and inline editor |
+| **Vault** | AES-256 encrypted secrets |
+| **Obsidian** | Sync and search your Obsidian vault |
+| **Cookbook** | Ollama model management |
+| **Connections** | Integrations: GitHub, Notion, Linear, Slack, ntfy |
 
 ---
 
-## Requirements
+## Server Setup
 
-- Python 3.11+
-- [Ollama](https://ollama.com) (optional, for local models)
-- Docker (optional, for the full stack with SearXNG + ChromaDB)
-
----
-
-## Quick Start
-
-### macOS
+### Linux / Ubuntu
 
 ```bash
 git clone https://github.com/Ghost-Network666/Morpheus morpheus
 cd morpheus/morpheus
-cp .env.example .env
-bash scripts/start-macos.sh
-```
-
-### Windows
-
-```powershell
-git clone https://github.com/Ghost-Network666/Morpheus morpheus
-cd morpheus\morpheus
-Copy-Item .env.example .env
-.\scripts\launch-windows.ps1
-```
-
-### Linux / Ubuntu Server
-
-```bash
-git clone https://github.com/Ghost-Network666/Morpheus morpheus
-cd morpheus/morpheus
-cp .env.example .env
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-python scripts/setup.py
 uvicorn app.main:app --host 0.0.0.0 --port 7860
 ```
 
@@ -73,34 +78,62 @@ uvicorn app.main:app --host 0.0.0.0 --port 7860
 git clone https://github.com/Ghost-Network666/Morpheus morpheus
 cd morpheus/morpheus/docker
 docker compose up -d
-# Open http://localhost:7860
+# Open http://your-server:7860
 ```
+
+### macOS / Windows (server mode)
+
+```bash
+# macOS
+bash scripts/start-macos.sh
+
+# Windows
+.\scripts\launch-windows.ps1
+```
+
+### Run as a systemd service
+
+```bash
+sudo cp scripts/morpheus.service /etc/systemd/system/
+sudo systemctl enable --now morpheus
+```
+
+---
+
+## Secure Remote Access
+
+Install [Tailscale](https://tailscale.com) on your server. Morpheus auto-detects the Tailscale MagicDNS URL:
+
+```
+Tailscale URL: http://my-server.tail12345.ts.net:7860
+```
+
+Then open the desktop app and connect to that URL — no port forwarding, no VPN config.
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env` and set your values:
+Copy `.env.example` to `.env`:
 
 ```env
-APP_HOST=127.0.0.1       # Use 0.0.0.0 to expose on the network
+APP_HOST=0.0.0.0        # expose on the network
 APP_PORT=7860
-AUTH_ENABLED=false        # Enable for any network-accessible install
 OLLAMA_URL=http://localhost:11434
 DEFAULT_MODEL=llama3.2:3b
 
-# Optional — for cloud AI providers
+# Cloud AI (optional)
 OPENAI_API_KEY=
 ANTHROPIC_API_KEY=
 
-# Optional — for web search
+# Web search (optional)
 BRAVE_API_KEY=
 TAVILY_API_KEY=
 ```
 
 ---
 
-## Installing Ollama (local models)
+## Local Models via Ollama
 
 ```bash
 # macOS / Linux
@@ -112,80 +145,46 @@ ollama pull llama3.2:3b
 
 ---
 
-## Ubuntu Server Setup
+## Architecture
+
+- **Backend**: FastAPI + SQLAlchemy (async SQLite) + Uvicorn
+- **Frontend**: Vanilla JS — no build step, served by FastAPI
+- **Desktop**: Electron 33 wrapping the backend; local or remote mode
+- **Terminal**: xterm.js ↔ WebSocket ↔ PTY (local or SSH via Paramiko)
+- **Streaming**: Server-Sent Events for chat and agent output
+- **RAG**: ChromaDB + fastembed (ONNX — no external API required)
+- **Search**: DuckDuckGo → SearXNG → Brave → Tavily fallback chain
+
+---
+
+## Privacy
+
+- No accounts, no logins, no passwords
+- Zero telemetry — nothing is sent externally unless you configure a cloud AI provider
+- All data stored locally in SQLite; secrets encrypted with AES-256 (Fernet)
+- Access is controlled at the network level (Tailscale, LAN, reverse proxy)
+
+---
+
+## Building from Source
 
 ```bash
-# Install as a systemd service
-sudo cp scripts/morpheus.service /etc/systemd/system/
-sudo systemctl enable --now morpheus
-sudo systemctl status morpheus
+cd desktop
+npm install
+npm run build:mac    # or build:win / build:linux
 ```
 
-For server installs, enable auth in `.env`:
-
-```env
-AUTH_ENABLED=true
-APP_HOST=0.0.0.0
-```
+Output goes to `desktop/dist/`.
 
 ---
 
-## Secure Remote Access with Tailscale
-
-Install [Tailscale](https://tailscale.com) on both your server and client. Morpheus auto-detects the MagicDNS URL and prints it at startup:
-
-```
-[✓] Tailscale URL: http://my-server.tail12345.ts.net:7860
-```
-
-No port forwarding or VPN configuration required.
-
----
-
-## Building Portable Executables
-
-**Windows (.exe)**
-```powershell
-.\scripts\build-windows-portable.ps1
-# Output: dist\Morpheus.exe
-```
-
-**macOS (.app)**
-```bash
-bash scripts/build-macos-app.sh
-# Output: dist/Morpheus.app
-```
-
----
-
-## Running Tests
+## Tests
 
 ```bash
 cd morpheus
 pip install -r requirements.txt
 pytest tests/ -v
 ```
-
----
-
-## Architecture
-
-- **Backend**: FastAPI + Uvicorn + SQLAlchemy (SQLite) + asyncio
-- **Frontend**: Vanilla JS ES modules — no build step, served directly by FastAPI
-- **Terminal**: xterm.js ↔ WebSocket ↔ PTY (local or SSH via Paramiko)
-- **Streaming**: Server-Sent Events (SSE) for chat and agent output
-- **RAG**: ChromaDB + fastembed (ONNX — no external API required)
-- **Search**: DuckDuckGo → SearXNG (self-hosted) → Brave → Tavily fallback chain
-
----
-
-## Security
-
-- Auth is disabled by default for `localhost`; always enable it for network-accessible installs
-- Secrets are encrypted with AES-256 (Fernet) in the Vault module
-- SSH credentials stored encrypted
-- Session cookies are `HttpOnly` and `SameSite=Lax`
-- No telemetry — zero data sent externally unless you configure external providers
 
 ---
 

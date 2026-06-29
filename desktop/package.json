@@ -3,16 +3,27 @@
   "version": "1.0.0",
   "description": "Self-hosted AI workspace — desktop app",
   "main": "src/main/index.js",
-  "author": "Ghost Network",
+  "author": {
+    "name": "Ghost Network",
+    "url": "https://github.com/Ghost-Network666"
+  },
+  "homepage": "https://github.com/Ghost-Network666/Morpheus",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ghost-Network666/Morpheus.git"
+  },
   "license": "MIT",
   "scripts": {
-    "dev": "electron . --dev",
+    "start": "electron . --dev",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
     "build:all": "electron-builder --win --mac --linux",
     "icons": "python3 scripts/generate-icon.py",
     "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.0.0",

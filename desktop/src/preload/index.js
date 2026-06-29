@@ -23,4 +23,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ── Global / tray ─────────────────────────────────────────────────────────
   goToConnect: () => ipcRenderer.send("go-to-connect"),
   quitApp:     () => ipcRenderer.send("quit-app"),
+  getVersion:  () => ipcRenderer.invoke("get-version"),
 });
