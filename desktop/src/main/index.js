@@ -206,9 +206,13 @@ function _openConnect(fromIntro = false) {
 }
 
 function _openLoading() {
+  const isMac = process.platform === "darwin";
   loadingWindow = new BrowserWindow({
     width: 420, height: 320,
-    frame: false, transparent: true, resizable: false, center: true,
+    frame: false,
+    transparent: isMac,
+    backgroundColor: isMac ? undefined : "#1e1e2e",
+    resizable: false, center: true,
     webPreferences: { preload: _preload(), contextIsolation: true, nodeIntegration: false },
   });
   loadingWindow.loadFile(path.join(__dirname, "../renderer/loading.html"));

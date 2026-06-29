@@ -9,7 +9,7 @@ directories:
 # Consistent artifact naming (no version in filename for stable download links)
 artifactName: morpheus-${arch}.${ext}
 
-# Bundle the Python backend
+# Bundle the Python backend + app icons (must be outside asar for native tray API)
 extraResources:
   - from: ../morpheus
     to: app
@@ -26,12 +26,15 @@ extraResources:
       - "!.git/**"
       - "!dist/**"
       - "!*.egg-info/**"
+  - from: assets
+    to: assets
+    filter:
+      - "icon.png"
+      - "icon.ico"
+      - "icon.icns"
 
 files:
   - src/**/*
-  - assets/icon.png
-  - assets/icon.ico
-  - assets/icon.icns
 
 # ── Windows ───────────────────────────────────────────────────────────────────
 win:

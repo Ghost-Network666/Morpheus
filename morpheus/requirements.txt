@@ -23,8 +23,8 @@ aiofiles==24.1.0
 anyio==4.6.0
 
 # SSH / Terminal
-paramiko==3.5.0
-asyncssh==2.17.0
+paramiko==3.5.1
+asyncssh==2.23.0
 pywinpty==2.0.14; sys_platform == "win32"
 
 # AI / LLM
@@ -35,11 +35,11 @@ chromadb==0.5.15
 fastembed==0.3.6
 
 # Document parsing
-pypdf==4.3.1
+pypdf==6.0.0
 python-docx==1.1.2
 openpyxl==3.1.5
 beautifulsoup4==4.12.3
-lxml==5.3.0
+lxml==6.1.0
 
 # Email
 aiosmtplib==3.0.2
@@ -50,7 +50,7 @@ icalendar==6.0.0
 caldav==1.3.9
 
 # Encryption
-cryptography==43.0.1
+cryptography==44.0.1
 
 # Image processing
 Pillow==10.4.0
@@ -62,7 +62,7 @@ duckduckgo-search>=6.0.0
 watchdog==4.0.1
 
 # Network discovery
-zeroconf==0.131.0
+zeroconf==0.149.5
 
 # Utilities
 psutil==6.0.0
@@ -73,3 +73,10 @@ Markdown==3.7
 pytest==8.3.3
 pytest-asyncio==0.24.0
 httpx==0.27.2
+
+# Transitive security pins
+h11>=0.16.0
+urllib3>=2.2.0
+zipp>=3.19.1
+requests>=2.32.2
+idna>=3.15
