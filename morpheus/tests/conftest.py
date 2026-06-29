@@ -6,9 +6,7 @@ from httpx import AsyncClient, ASGITransport
 
 os.environ.setdefault("APP_HOST", "127.0.0.1")
 os.environ.setdefault("APP_PORT", "7860")
-os.environ.setdefault("AUTH_ENABLED", "false")
 os.environ.setdefault("DATA_DIR", "data_test")
-os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only-32chars")
 
 
 @pytest.fixture(scope="session")
