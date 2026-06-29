@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.obsidian import ObsidianNote
+from app.core.sync import broadcast
 
 router = APIRouter(prefix="/api/obsidian", tags=["obsidian"])
 
@@ -190,6 +191,7 @@ async def write_note(path: str, request: Request):
             db.add(ObsidianNote(rel_path=path, title=title, tags=tags, content=content, modified_at=mtime))
         await db.commit()
 
+    await broadcast(1, "obsidian_changed", {"action": "update", "path": path})
     return {"ok": True, "path": path}
 
 
@@ -210,6 +212,7 @@ async def delete_note(path: str):
             await db.delete(note)
             await db.commit()
 
+    await broadcast(1, "obsidian_changed", {"action": "delete", "path": path})
     return {"ok": True}
 
 
@@ -239,4 +242,5 @@ async def create_note(request: Request):
         db.add(note)
         await db.commit()
 
+    await broadcast(1, "obsidian_changed", {"action": "create", "path": rel})
     return {"ok": True, "path": rel, "title": title}

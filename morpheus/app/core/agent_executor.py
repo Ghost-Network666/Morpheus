@@ -68,10 +68,20 @@ async def _tool_read_file(path: str) -> str:
 
 
 async def _tool_write_file(path: str, content: str) -> str:
+    import os
+    from app.config import settings
+    allowed_base = os.path.abspath(os.path.join(settings.data_dir, "uploads"))
+    target = os.path.abspath(
+        path if os.path.isabs(path) else os.path.join(allowed_base, path)
+    )
+    if not target.startswith(allowed_base + os.sep) and target != allowed_base:
+        return "Error: write_file is restricted to the uploads directory"
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w", encoding="utf-8") as f:
             f.write(content)
-        return f"Wrote {len(content)} bytes to {path}"
+        rel = os.path.relpath(target, allowed_base)
+        return f"Wrote {len(content)} bytes to uploads/{rel}"
     except Exception as e:
         return f"Error writing file: {e}"
 
@@ -132,6 +142,101 @@ register_tool(
     "Save a piece of information to local memory for future retrieval",
     {"type": "object", "properties": {"content": {"type": "string", "description": "Text to remember"}}, "required": ["content"]},
     _tool_remember,
+)
+
+
+async def _tool_calculator(expression: str) -> str:
+    import math
+    safe_globals = {
+        "__builtins__": {},
+        "abs": abs, "round": round, "min": min, "max": max, "sum": sum,
+        "pow": pow, "int": int, "float": float, "len": len,
+        "sqrt": math.sqrt, "ceil": math.ceil, "floor": math.floor,
+        "log": math.log, "log10": math.log10, "log2": math.log2,
+        "sin": math.sin, "cos": math.cos, "tan": math.tan,
+        "asin": math.asin, "acos": math.acos, "atan": math.atan, "atan2": math.atan2,
+        "exp": math.exp, "factorial": math.factorial,
+        "pi": math.pi, "e": math.e, "inf": math.inf,
+    }
+    try:
+        result = eval(expression, safe_globals)
+        return str(result)
+    except ZeroDivisionError:
+        return "Error: division by zero"
+    except Exception as exc:
+        return f"Error: {exc}"
+
+
+register_tool(
+    "calculator",
+    "Evaluate a mathematical expression (arithmetic, trig, logarithms, etc.)",
+    {"type": "object", "properties": {"expression": {"type": "string", "description": "Python-style math expression, e.g. '2**10', 'sqrt(144)', 'sin(pi/2)'"}}, "required": ["expression"]},
+    _tool_calculator,
+)
+
+
+async def _tool_create_note(title: str, content: str = "") -> str:
+    from app.database import AsyncSessionLocal
+    from app.models.notes import Note
+    from app.models.user import User
+    from app.core.sync import broadcast
+    from sqlalchemy import select
+    async with AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).limit(1))).scalar_one_or_none()
+        if not user:
+            return "Error: no owner user found"
+        note = Note(user_id=user.id, title=title, content=content or f"# {title}\n\n")
+        db.add(note)
+        await db.commit()
+        await db.refresh(note)
+    await broadcast(user.id, "notes_changed", {"action": "create", "id": note.id})
+    return f"Note created: '{title}' (id={note.id})"
+
+
+register_tool(
+    "create_note",
+    "Create a new note with a title and optional markdown content",
+    {"type": "object", "properties": {"title": {"type": "string"}, "content": {"type": "string", "description": "Markdown content (optional)"}}, "required": ["title"]},
+    _tool_create_note,
+)
+
+
+async def _tool_create_task(title: str, description: str = "", priority: str = "medium", due_date: str = "") -> str:
+    from app.database import AsyncSessionLocal
+    from app.models.notes import Task
+    from app.models.user import User
+    from app.core.sync import broadcast
+    from sqlalchemy import select
+    from datetime import datetime as _dt
+    async with AsyncSessionLocal() as db:
+        user = (await db.execute(select(User).limit(1))).scalar_one_or_none()
+        if not user:
+            return "Error: no owner user found"
+        due = None
+        if due_date:
+            try:
+                due = _dt.fromisoformat(due_date)
+            except Exception:
+                pass
+        task = Task(
+            user_id=user.id,
+            title=title,
+            description=description or None,
+            priority=priority if priority in ("low", "medium", "high") else "medium",
+            due_date=due,
+        )
+        db.add(task)
+        await db.commit()
+        await db.refresh(task)
+    await broadcast(user.id, "tasks_changed", {"action": "create", "id": task.id})
+    return f"Task created: '{title}' (id={task.id}, priority={task.priority})"
+
+
+register_tool(
+    "create_task",
+    "Create a new task in the task list",
+    {"type": "object", "properties": {"title": {"type": "string"}, "description": {"type": "string"}, "priority": {"type": "string", "enum": ["low", "medium", "high"], "default": "medium"}, "due_date": {"type": "string", "description": "ISO datetime e.g. 2024-12-31T09:00:00 (optional)"}}, "required": ["title"]},
+    _tool_create_task,
 )
 
 

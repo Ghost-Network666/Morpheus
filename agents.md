@@ -80,12 +80,15 @@ When agent mode is enabled, the model has access to:
 
 | Tool | What it does |
 |------|-------------|
-| Web search | Searches via SearXNG, Brave, Tavily, or Google PSE |
-| RAG memory | Queries your personal knowledge base |
-| Calculator | Evaluates math expressions |
-| File read | Reads documents from your vault |
-| Notes | Creates and retrieves notes |
-| Tasks | Creates tasks in your task list |
+| `web_search` | Searches via SearXNG (or Brave/Tavily/Google PSE if configured) |
+| `memory_search` | Queries your personal knowledge base (uploaded docs + Obsidian vault) |
+| `remember` | Saves a piece of information to local memory for future retrieval |
+| `calculator` | Evaluates math expressions (arithmetic, trig, logarithms, etc.) |
+| `read_file` | Reads a file from the local filesystem |
+| `write_file` | Writes content to a file in the uploads directory |
+| `shell` | Executes a shell command locally or on a remote SSH host |
+| `create_note` | Creates a new note with a title and optional markdown content |
+| `create_task` | Creates a task in the task list with priority and optional due date |
 
 ---
 
@@ -134,18 +137,6 @@ sudo systemctl enable --now morpheus
 ### Tailscale (recommended for remote access)
 
 Install Tailscale on both the server and client devices, then set `TAILSCALE_DETECT=true`. Morpheus will display its Tailscale URL at the top of the interface.
-
-### Auth
-
-Enable authentication for server installs:
-
-```env
-AUTH_ENABLED=true
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=your-strong-password
-```
-
----
 
 ## WebSocket Sync
 

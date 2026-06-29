@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models.notes import Note, Task, CalendarEvent
 from app.models.user import User
 from app.api.auth import require_user
+from app.core.sync import broadcast
 
 router = APIRouter(tags=["notes-tasks-calendar"])
 
@@ -30,6 +31,7 @@ async def create_note(request: Request, db: AsyncSession = Depends(get_db), user
     db.add(note)
     await db.commit()
     await db.refresh(note)
+    await broadcast(user.id, "notes_changed", {"action": "create", "id": note.id})
     return _note_out(note)
 
 
@@ -56,6 +58,7 @@ async def update_note(note_id: int, request: Request, db: AsyncSession = Depends
             setattr(note, f, body[f])
     note.updated_at = datetime.now(timezone.utc)
     await db.commit()
+    await broadcast(user.id, "notes_changed", {"action": "update", "id": note.id})
     return _note_out(note)
 
 
@@ -67,6 +70,7 @@ async def delete_note(note_id: int, db: AsyncSession = Depends(get_db), user: Us
         raise HTTPException(404, "Note not found")
     await db.delete(note)
     await db.commit()
+    await broadcast(user.id, "notes_changed", {"action": "delete", "id": note_id})
     return {"ok": True}
 
 
@@ -130,6 +134,7 @@ async def create_task(request: Request, db: AsyncSession = Depends(get_db), user
     db.add(task)
     await db.commit()
     await db.refresh(task)
+    await broadcast(user.id, "tasks_changed", {"action": "create", "id": task.id})
     return _task_out(task)
 
 
@@ -147,6 +152,7 @@ async def update_task(task_id: int, request: Request, db: AsyncSession = Depends
         task.due_date = _parse_dt(body["due_date"])
     task.updated_at = datetime.now(timezone.utc)
     await db.commit()
+    await broadcast(user.id, "tasks_changed", {"action": "update", "id": task.id})
     return _task_out(task)
 
 
@@ -158,6 +164,7 @@ async def delete_task(task_id: int, db: AsyncSession = Depends(get_db), user: Us
         raise HTTPException(404, "Task not found")
     await db.delete(task)
     await db.commit()
+    await broadcast(user.id, "tasks_changed", {"action": "delete", "id": task_id})
     return {"ok": True}
 
 
@@ -191,6 +198,7 @@ async def create_event(request: Request, db: AsyncSession = Depends(get_db), use
     db.add(event)
     await db.commit()
     await db.refresh(event)
+    await broadcast(user.id, "calendar_changed", {"action": "create", "id": event.id})
     return _event_out(event)
 
 
@@ -209,6 +217,7 @@ async def update_event(event_id: int, request: Request, db: AsyncSession = Depen
     if "end" in body:
         event.end = _parse_dt(body["end"])
     await db.commit()
+    await broadcast(user.id, "calendar_changed", {"action": "update", "id": event.id})
     return _event_out(event)
 
 
@@ -220,6 +229,7 @@ async def delete_event(event_id: int, db: AsyncSession = Depends(get_db), user: 
         raise HTTPException(404, "Event not found")
     await db.delete(event)
     await db.commit()
+    await broadcast(user.id, "calendar_changed", {"action": "delete", "id": event_id})
     return {"ok": True}
 
 

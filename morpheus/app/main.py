@@ -21,7 +21,22 @@ async def lifespan(app: FastAPI):
     await init_db()
     await _ensure_owner_user()
     await _load_system_settings()
+
+    # Background: task scheduler for cron tasks
+    from app.core.task_scheduler import start_scheduler
+    scheduler = asyncio.create_task(start_scheduler())
+
+    # Background: Obsidian vault file watcher
+    if settings.module_obsidian and settings.obsidian_vault_path:
+        from app.core.vault_watcher import start_vault_watcher
+        await start_vault_watcher(settings.obsidian_vault_path)
+
     yield
+
+    # Shutdown
+    scheduler.cancel()
+    from app.core.vault_watcher import stop_vault_watcher
+    stop_vault_watcher()
 
 
 async def _load_system_settings():
@@ -131,7 +146,7 @@ def create_app() -> FastAPI:
                 if data == "ping":
                     await ws.send_text('{"type":"pong"}')
         except Exception:
-            disconnect(user_id, ws)
+            disconnect(1, ws)
 
     # System info
     @app.get("/api/system/info")

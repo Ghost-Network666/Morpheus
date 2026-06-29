@@ -14,7 +14,6 @@ services:
     environment:
       - APP_HOST=0.0.0.0
       - APP_PORT=7860
-      - AUTH_ENABLED=true
       - OLLAMA_URL=http://host.docker.internal:11434
       - SEARXNG_URL=http://searxng:8080
       - CHROMA_HOST=chromadb
@@ -24,10 +23,21 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - searxng
-      - chromadb
+      searxng:
+        condition: service_started
+      chromadb:
+        condition: service_healthy
     networks:
       - morpheus_net
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   searxng:
     image: searxng/searxng:latest
@@ -47,6 +57,15 @@ services:
       - SETUID
     networks:
       - morpheus_net
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   chromadb:
     image: chromadb/chroma:latest
@@ -58,6 +77,21 @@ services:
       - chroma_data:/chroma/chroma
     networks:
       - morpheus_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   ntfy:
     image: binwiederhier/ntfy:latest
@@ -68,6 +102,15 @@ services:
     command: serve
     networks:
       - morpheus_net
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
 volumes:
   morpheus_data:

@@ -103,6 +103,27 @@ async def generate_reply(account_id: int, request: Request, db: AsyncSession = D
     return StreamingResponse(generate(), media_type="text/event-stream")
 
 
+@router.post("/accounts/{account_id}/send")
+async def send_email(account_id: int, request: Request, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
+    result = await db.execute(select(EmailAccount).where(EmailAccount.id == account_id, EmailAccount.user_id == user.id))
+    account = result.scalar_one_or_none()
+    if not account:
+        raise HTTPException(404, "Account not found")
+
+    body = await request.json()
+    to_addr = body.get("to", "")
+    subject = body.get("subject", "")
+    message_body = body.get("body", "")
+    if not to_addr or not subject:
+        raise HTTPException(400, "to and subject are required")
+
+    try:
+        await _send_smtp(account, to_addr, subject, message_body)
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(500, f"SMTP error: {e}")
+
+
 @router.post("/accounts/{account_id}/triage")
 async def triage_inbox(account_id: int, db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
     result = await db.execute(select(EmailMessage).where(EmailMessage.account_id == account_id, EmailMessage.summary_ai.is_(None)).limit(10))
@@ -120,6 +141,28 @@ async def triage_inbox(account_id: int, db: AsyncSession = Depends(get_db), user
 
     await db.commit()
     return {"triaged": len(messages)}
+
+
+async def _send_smtp(account: EmailAccount, to_addr: str, subject: str, body: str):
+    import aiosmtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    password = decrypt(account.password_encrypted)
+    msg = MIMEMultipart()
+    msg["From"] = account.email
+    msg["To"] = to_addr
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    await aiosmtplib.send(
+        msg,
+        hostname=account.smtp_host,
+        port=account.smtp_port,
+        username=account.username,
+        password=password,
+        start_tls=account.smtp_tls,
+    )
 
 
 async def _fetch_imap(account: EmailAccount) -> list[dict]:

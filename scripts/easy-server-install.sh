@@ -77,12 +77,8 @@ setup_env() {
   fi
   info "Creating .env from template…"
   cp "$INSTALL_DIR/morpheus/.env.example" "$env_file"
-  SECRET=$(python3 -c "import secrets; print(secrets.token_hex(32))")
-  sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET|" "$env_file"
   sed -i "s|APP_PORT=.*|APP_PORT=$PORT|" "$env_file"
   ok ".env created at $env_file"
-  echo ""
-  warn "IMPORTANT: Edit $env_file to set ADMIN_PASSWORD and other settings before first run."
 }
 
 install_systemd() {
