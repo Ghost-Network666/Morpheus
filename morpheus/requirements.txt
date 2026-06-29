@@ -25,7 +25,7 @@ anyio==4.6.0
 # SSH / Terminal
 paramiko==3.5.0
 asyncssh==2.17.0
-pywinpty==2.0.14
+pywinpty==2.0.14; sys_platform == "win32"
 
 # AI / LLM
 openai==1.51.0
