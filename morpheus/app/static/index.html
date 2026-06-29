@@ -438,12 +438,12 @@
             </div>
           </div>
 
-          <!-- .env setup banner (shown only when .env is missing) -->
+          <!-- first-run hint (shown when setup incomplete) -->
           <div id="env-banner" style="display:none" class="env-banner">
-            <div class="env-banner-icon">📄</div>
+            <div class="env-banner-icon">⚙️</div>
             <div>
-              <div style="font-weight:600;margin-bottom:3px">Set up your <code>.env</code> file to persist settings across restarts</div>
-              <div style="font-size:12px;color:var(--text2)">In your <code>morpheus/</code> folder, rename <code>.env.example</code> → <code>.env</code>. Settings you save here are automatically written to it.</div>
+              <div style="font-weight:600;margin-bottom:3px">Quick setup recommended</div>
+              <div style="font-size:12px;color:var(--text2)">Enter your Ollama URL and optional API keys below and click Save — no config files needed.</div>
             </div>
             <button id="env-banner-dismiss" class="btn-icon" title="Dismiss">✕</button>
           </div>
@@ -637,6 +637,16 @@
             </div>
           </div>
 
+          <!-- Obsidian Vault -->
+          <div class="settings-section">
+            <div class="settings-section-title">Obsidian Vault</div>
+            <div class="form-group">
+              <label class="form-label">Vault Path</label>
+              <input id="setting-obsidian-vault-path" placeholder="/Users/you/Documents/vault  or  C:\Users\you\vault">
+              <div class="form-hint">Full path to your local Obsidian vault folder</div>
+            </div>
+          </div>
+
           <!-- Modules -->
           <div class="settings-section">
             <div class="settings-section-title">Modules</div>
@@ -666,6 +676,47 @@
 
 <!-- Toast container -->
 <div id="toast-container"></div>
+
+<!-- Setup Wizard -->
+<div id="setup-wizard" style="display:none">
+  <div class="setup-card">
+    <div class="setup-logo">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span>Morpheus</span>
+    </div>
+    <h2 class="setup-title">Welcome! Let's get you set up</h2>
+    <p class="setup-subtitle">You can change any of these later in Settings. No config files required.</p>
+
+    <div class="setup-field">
+      <label class="form-label">Ollama URL <span class="text-muted">(local AI)</span></label>
+      <div style="display:flex;gap:8px">
+        <input id="setup-ollama-url" placeholder="http://localhost:11434" style="flex:1">
+        <button id="setup-test-ollama" class="btn btn-secondary btn-sm" style="white-space:nowrap">Test</button>
+      </div>
+      <div id="setup-ollama-status" class="setup-hint"></div>
+    </div>
+
+    <div class="setup-field">
+      <label class="form-label">OpenAI API Key <span class="text-muted">(optional)</span></label>
+      <input id="setup-openai-key" type="password" placeholder="sk-…">
+    </div>
+
+    <div class="setup-field">
+      <label class="form-label">Anthropic API Key <span class="text-muted">(optional)</span></label>
+      <input id="setup-anthropic-key" type="password" placeholder="sk-ant-…">
+    </div>
+
+    <div class="setup-field">
+      <label class="form-label">Obsidian Vault Path <span class="text-muted">(optional)</span></label>
+      <input id="setup-obsidian-path" placeholder="/Users/you/vault  or  C:\Users\you\vault">
+    </div>
+
+    <div class="setup-actions">
+      <button id="setup-skip-btn" class="btn btn-secondary">Skip for now</button>
+      <button id="setup-save-btn" class="btn btn-primary">Save &amp; Continue</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modals -->
 

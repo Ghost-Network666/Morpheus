@@ -36,8 +36,8 @@ async function _checkEnvBanner() {
   const banner = document.getElementById("env-banner");
   if (!banner) return;
   try {
-    const { has_env } = await API.settings.envStatus();
-    if (!has_env) {
+    const { needs_setup } = await API.settings.setupStatus();
+    if (needs_setup) {
       banner.style.display = "flex";
       document.getElementById("env-banner-dismiss")?.addEventListener("click", () => {
         banner.style.display = "none";
@@ -168,6 +168,9 @@ function _renderFields() {
 
   // Memory source
   _set("setting-memory-source", s.memory_source || "local");
+
+  // Obsidian vault path
+  _set("setting-obsidian-vault-path", s.obsidian_vault_path || "");
 }
 
 function _set(id, value, attr = "value", attrVal) {
@@ -227,8 +230,9 @@ async function _save() {
     "setting-google-pse-cx":    "google_pse_cx",
     "setting-ntfy-url":         "ntfy_url",
     "setting-ntfy-topic":       "ntfy_topic",
-    "setting-trusted-lan":      "trusted_lan",
-    "setting-chroma-host":      "chroma_host",
+    "setting-trusted-lan":         "trusted_lan",
+    "setting-chroma-host":         "chroma_host",
+    "setting-obsidian-vault-path": "obsidian_vault_path",
   };
 
   for (const [id, key] of Object.entries(fields)) {

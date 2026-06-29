@@ -173,6 +173,8 @@ const API = {
     toggle: (mod) => API.post(`/api/settings/toggle/${mod}`),
     changePassword: (current, newPw) => API.post("/api/settings/change-password", { current_password: current, new_password: newPw }),
     envStatus: () => API.get("/api/settings/env-status"),
+    setupStatus: () => API.get("/api/settings/setup-status"),
+    completeSetup: (data) => API.post("/api/settings/complete-setup", data),
   },
 
   // Connections / Vault

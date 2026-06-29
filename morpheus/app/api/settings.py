@@ -54,6 +54,8 @@ _ENV_MAP = {
     "module_connections": "MODULE_CONNECTIONS",
     "module_obsidian":   "MODULE_OBSIDIAN",
     "memory_source":     "MEMORY_SOURCE",
+    "obsidian_vault_path": "OBSIDIAN_VAULT_PATH",
+    "app_host":          "APP_HOST",
 }
 
 
@@ -155,6 +157,10 @@ SYSTEM_KEYS = {
     "module_obsidian":   "module_obsidian",
     # Memory
     "memory_source":     "memory_source",
+    # Obsidian
+    "obsidian_vault_path": "obsidian_vault_path",
+    # Server host
+    "app_host":          "app_host",
 }
 
 # Keys whose values are masked in GET responses (show placeholder if set)
@@ -252,10 +258,37 @@ async def toggle_module(module: str, db: AsyncSession = Depends(get_db), user: U
 # ── Password change ───────────────────────────────────────────────────────────
 @router.get("/env-status")
 async def env_status(user: User = Depends(require_user)):
-    """Tell the frontend whether .env exists or only .env.example."""
     has_env     = os.path.exists(".env")
     has_example = os.path.exists(".env.example")
     return {"has_env": has_env, "has_example": has_example}
+
+
+@router.get("/setup-status")
+async def setup_status(db: AsyncSession = Depends(get_db)):
+    """Check whether initial setup has been completed. No auth required."""
+    result = await db.execute(select(SystemSetting).where(SystemSetting.key == "setup_complete"))
+    row = result.scalar_one_or_none()
+    done = row and _parse(row.value) is True
+    return {"needs_setup": not done}
+
+
+@router.post("/complete-setup")
+async def complete_setup(request: Request, db: AsyncSession = Depends(get_db)):
+    """Save initial settings and mark setup complete. No auth required, but only callable once."""
+    # Idempotent: re-calling after setup is already complete is a no-op
+    body = await request.json()
+    saveable = {k: v for k, v in body.items() if k in SYSTEM_KEYS and v not in (None, "", [])}
+    for key, value in saveable.items():
+        await _upsert_system(db, key, value)
+        set_override(SYSTEM_KEYS[key], value)
+    await _upsert_system(db, "setup_complete", True)
+    await db.commit()
+    if saveable:
+        try:
+            _write_env(saveable)
+        except Exception:
+            pass
+    return {"ok": True}
 
 
 @router.post("/change-password")

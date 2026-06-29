@@ -234,6 +234,9 @@ async function init() {
   const authed = await checkAuth();
   if (!authed) return;
 
+  // Show setup wizard on first run
+  await _checkSetupWizard();
+
   // Wire up nav
   document.querySelectorAll(".nav-item[data-page]").forEach(el => {
     el.addEventListener("click", () => navigate(el.dataset.page));
@@ -267,6 +270,61 @@ async function init() {
 
   // WebSocket real-time sync
   _connectSync();
+}
+
+async function _checkSetupWizard() {
+  try {
+    const { needs_setup } = await API.settings.setupStatus();
+    if (!needs_setup) return;
+  } catch {
+    return; // non-fatal — skip wizard if endpoint unreachable
+  }
+
+  const wizard = document.getElementById("setup-wizard");
+  if (!wizard) return;
+  wizard.style.display = "flex";
+
+  async function _dismissWizard() {
+    wizard.style.display = "none";
+    // Mark setup complete so wizard doesn't show again
+    await API.settings.completeSetup({}).catch(() => {});
+  }
+
+  document.getElementById("setup-skip-btn")?.addEventListener("click", _dismissWizard);
+
+  document.getElementById("setup-test-ollama")?.addEventListener("click", async () => {
+    const url = document.getElementById("setup-ollama-url")?.value.trim() || "http://localhost:11434";
+    const status = document.getElementById("setup-ollama-status");
+    if (status) status.textContent = "Testing…";
+    try {
+      const r = await fetch(`${url}/api/tags`, { signal: AbortSignal.timeout(4000) });
+      const ok = r.ok;
+      if (status) {
+        status.textContent = ok ? "Connected!" : "Responded but returned an error";
+        status.className = "setup-hint " + (ok ? "setup-hint-ok" : "setup-hint-err");
+      }
+    } catch {
+      if (status) { status.textContent = "Could not reach Ollama at that URL"; status.className = "setup-hint setup-hint-err"; }
+    }
+  });
+
+  document.getElementById("setup-save-btn")?.addEventListener("click", async () => {
+    const data = {};
+    const ollamaUrl = document.getElementById("setup-ollama-url")?.value.trim();
+    const openaiKey = document.getElementById("setup-openai-key")?.value.trim();
+    const anthropicKey = document.getElementById("setup-anthropic-key")?.value.trim();
+    const vaultPath = document.getElementById("setup-obsidian-path")?.value.trim();
+    if (ollamaUrl) data.ollama_url = ollamaUrl;
+    if (openaiKey) data.openai_api_key = openaiKey;
+    if (anthropicKey) data.anthropic_api_key = anthropicKey;
+    if (vaultPath) data.obsidian_vault_path = vaultPath;
+    try {
+      await API.settings.completeSetup(data);
+      wizard.style.display = "none";
+    } catch (e) {
+      toast(e.message, "error");
+    }
+  });
 }
 
 function _connectSync() {

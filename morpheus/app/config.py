@@ -5,6 +5,26 @@ import secrets
 import os
 
 
+def _persistent_secret() -> str:
+    """Return a stable secret key, persisting it to data/secret.key if not set via env."""
+    env_val = os.environ.get("SECRET_KEY")
+    if env_val:
+        return env_val
+    data_dir = os.environ.get("DATA_DIR", "data")
+    key_path = os.path.join(data_dir, "secret.key")
+    try:
+        if os.path.exists(key_path):
+            with open(key_path, "r") as f:
+                return f.read().strip()
+        os.makedirs(data_dir, exist_ok=True)
+        key = secrets.token_hex(32)
+        with open(key_path, "w") as f:
+            f.write(key)
+        return key
+    except Exception:
+        return secrets.token_hex(32)
+
+
 class Settings(BaseSettings):
     # Server
     app_host: str = Field("127.0.0.1", env="APP_HOST")
@@ -13,7 +33,7 @@ class Settings(BaseSettings):
 
     # Auth
     auth_enabled: bool = Field(False, env="AUTH_ENABLED")
-    secret_key: str = Field(default_factory=lambda: secrets.token_hex(32), env="SECRET_KEY")
+    secret_key: str = Field(default_factory=_persistent_secret, env="SECRET_KEY")
     session_expire_days: int = Field(30, env="SESSION_EXPIRE_DAYS")
     admin_username: str = Field("admin", env="ADMIN_USERNAME")
     admin_password: Optional[str] = Field(None, env="ADMIN_PASSWORD")

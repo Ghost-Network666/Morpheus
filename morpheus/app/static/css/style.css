@@ -869,3 +869,23 @@ select option { background: var(--bg3); }
 .markdown-body a { color: var(--accent); }
 .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 1.5em 0; }
 .markdown-body blockquote { border-left: 3px solid var(--accent); padding-left: 12px; color: var(--text2); margin: 0.8em 0; }
+
+/* ── Setup wizard ─────────────────────────────────────────────────────────── */
+#setup-wizard {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  z-index: 2000; display: none; align-items: center; justify-content: center;
+}
+.setup-card {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+  padding: 40px; max-width: 520px; width: 90%; box-shadow: 0 16px 60px rgba(0,0,0,0.5);
+}
+.setup-logo { display: flex; align-items: center; gap: 12px; color: var(--accent); margin-bottom: 20px; }
+.setup-logo span { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.setup-title { font-size: 22px; font-weight: 700; color: var(--text); margin: 0 0 8px; }
+.setup-subtitle { font-size: 13px; color: var(--text2); margin: 0 0 28px; }
+.setup-field { margin-bottom: 18px; }
+.setup-hint { font-size: 12px; color: var(--text3); margin-top: 4px; min-height: 16px; }
+.setup-hint-ok  { color: var(--green); }
+.setup-hint-err { color: var(--red); }
+.setup-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 28px; }
+.form-hint { font-size: 12px; color: var(--text3); margin-top: 4px; }
