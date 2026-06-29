@@ -375,6 +375,8 @@ ipcMain.on("go-to-connect", () => {
 
 ipcMain.on("quit-app", () => _quit());
 
+ipcMain.on("open-external", (_e, url) => shell.openExternal(url));
+
 ipcMain.handle("test-remote-url", async (_e, url) => {
   try {
     const checkUrl = `${url.replace(/\/$/, "")}/api/system/info`;

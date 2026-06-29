@@ -44,6 +44,8 @@ win:
 
 nsis:
   oneClick: false
+  perMachine: true
+  requestedExecutionLevel: requireAdministrator
   allowToChangeInstallationDirectory: true
   installerIcon: assets/icon.ico
   uninstallerIcon: assets/icon.ico

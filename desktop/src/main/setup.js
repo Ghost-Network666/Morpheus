@@ -38,7 +38,7 @@ function _venvBin(venvDir, name) {
 function _run(cmd, args) {
   return new Promise((resolve, reject) => {
     let out = "";
-    const proc = spawn(cmd, args, { shell: process.platform === "win32" });
+    const proc = spawn(cmd, args, { shell: false });
     proc.stdout.on("data", d => { out += d; });
     proc.stderr.on("data", d => { out += d; });
     proc.on("error", reject);
@@ -51,7 +51,7 @@ function _run(cmd, args) {
 
 function _runWithProgress(cmd, args, onProgress) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(cmd, args, { shell: process.platform === "win32" });
+    const proc = spawn(cmd, args, { shell: false });
     let last = "";
     const _emit = (line) => {
       line = line.trim();

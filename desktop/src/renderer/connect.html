@@ -172,14 +172,14 @@
       <input type="text" id="inp-name" placeholder="Home Server">
     </div>
     <div class="field">
-      <label for="inp-url">Server URL</label>
+      <label for="inp-url">Server IP or Hostname</label>
       <div class="test-row">
-        <input type="url" id="inp-url" placeholder="http://192.168.1.100:7860" style="flex:1">
+        <input type="text" id="inp-url" placeholder="192.168.1.100 or hostname:7860" style="flex:1">
         <button class="btn-test" id="test-btn" onclick="testConnection()">Test</button>
       </div>
       <div class="test-row" style="margin-top:2px">
         <div class="status-dot" id="test-dot"></div>
-        <span class="status-text" id="test-text">Enter your server URL above</span>
+        <span class="status-text" id="test-text">Enter IP or hostname above</span>
       </div>
     </div>
   </div>
@@ -224,8 +224,16 @@
     }
   }
 
+  function _buildUrl(raw) {
+    raw = raw.trim();
+    if (!raw) return "";
+    if (/^https?:\/\//i.test(raw)) return raw.replace(/\/$/, "");
+    if (/:\d+$/.test(raw)) return "http://" + raw;
+    return "http://" + raw + ":7860";
+  }
+
   async function testConnection() {
-    const url = document.getElementById("inp-url").value.trim();
+    const url = _buildUrl(document.getElementById("inp-url").value);
     if (!url) return;
     const dot  = document.getElementById("test-dot");
     const txt  = document.getElementById("test-text");
@@ -264,7 +272,7 @@
     if (mode === "local") {
       window.electronAPI.connectLocal();
     } else {
-      const url  = document.getElementById("inp-url").value.trim();
+      const url  = _buildUrl(document.getElementById("inp-url").value);
       const name = document.getElementById("inp-name").value.trim() || _nameFromUrl(url);
       if (!url) return;
       window.electronAPI.connectRemote(name, url);
@@ -322,7 +330,7 @@
     testPassed = false;
     _updateConnectBtn();
     document.getElementById("test-dot").className = "status-dot";
-    document.getElementById("test-text").textContent = "Enter your server URL above";
+    document.getElementById("test-text").textContent = "Enter IP or hostname above";
     document.getElementById("test-text").className = "status-text";
   });
 

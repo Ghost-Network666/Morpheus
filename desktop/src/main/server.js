@@ -55,7 +55,7 @@ function _appDir() {
 
 async function _resolvePython() {
   const candidates = process.platform === "win32"
-    ? ["python", "python3", "py"]
+    ? _windowsPythonCandidates()
     : ["python3", "python"];
 
   for (const cmd of candidates) {
@@ -67,9 +67,47 @@ async function _resolvePython() {
       }
     } catch (_) {}
   }
+
+  if (process.platform === "win32") {
+    await _tryInstallPythonWindows();
+    for (const cmd of _windowsPythonCandidates()) {
+      try {
+        const ver = await _run(cmd, ["--version"]);
+        const m = ver.match(/(\d+)\.(\d+)/);
+        if (m && (parseInt(m[1]) > 3 || (parseInt(m[1]) === 3 && parseInt(m[2]) >= 10))) {
+          return cmd;
+        }
+      } catch (_) {}
+    }
+  }
+
   throw new Error(
-    "Python 3.10+ not found.\n\nPlease install Python from https://python.org and relaunch Morpheus."
+    "PYTHON_MISSING:Python 3.10+ is required but was not found on this machine.\n\nMorpheus will open the Python download page — install Python 3.11 or newer, then click Retry."
   );
+}
+
+function _windowsPythonCandidates() {
+  const base = [];
+  const localApp = process.env.LOCALAPPDATA || "";
+  for (const ver of ["311", "312", "310", "313"]) {
+    base.push(
+      path.join(localApp, `Programs\\Python\\Python${ver}\\python.exe`),
+      `C:\\Python${ver}\\python.exe`,
+      `C:\\Program Files\\Python${ver}\\python.exe`,
+      `C:\\Program Files (x86)\\Python${ver}\\python.exe`,
+    );
+  }
+  return ["python", "python3", "py", ...base];
+}
+
+async function _tryInstallPythonWindows() {
+  try {
+    await _run("winget", [
+      "install", "--id", "Python.Python.3.11", "-e",
+      "--silent", "--scope", "machine", "--accept-package-agreements",
+      "--accept-source-agreements",
+    ]);
+  } catch (_) {}
 }
 
 async function _runSetup(python, appDir, venvDir, dataDir, onProgress) {
@@ -133,7 +171,7 @@ function _venvBin(venvDir, name) {
 function _run(cmd, args) {
   return new Promise((resolve, reject) => {
     let out = "";
-    const proc = spawn(cmd, args, { shell: process.platform === "win32" });
+    const proc = spawn(cmd, args, { shell: false });
     proc.stdout.on("data", d => { out += d; });
     proc.stderr.on("data", d => { out += d; });
     proc.on("error", reject);

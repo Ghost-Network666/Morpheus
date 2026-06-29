@@ -21,7 +21,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   retrySetup:      () => ipcRenderer.send("retry-setup"),
 
   // ── Global / tray ─────────────────────────────────────────────────────────
-  goToConnect: () => ipcRenderer.send("go-to-connect"),
-  quitApp:     () => ipcRenderer.send("quit-app"),
-  getVersion:  () => ipcRenderer.invoke("get-version"),
+  goToConnect:   () => ipcRenderer.send("go-to-connect"),
+  quitApp:       () => ipcRenderer.send("quit-app"),
+  getVersion:    () => ipcRenderer.invoke("get-version"),
+  openExternal:  (url) => ipcRenderer.send("open-external", url),
 });

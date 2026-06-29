@@ -39,7 +39,7 @@
     display: none; font-size: 12px; color: #f38ba8; text-align: center;
     padding: 0 24px; max-width: 380px; word-break: break-word; line-height: 1.5;
   }
-  .btn-row { display: none; gap: 8px; -webkit-app-region: no-drag; }
+  .btn-row { display: none; gap: 8px; flex-wrap: wrap; justify-content: center; -webkit-app-region: no-drag; }
   button {
     padding: 7px 16px; border-radius: 6px; border: 1px solid #313244;
     background: #313244; color: #cdd6f4; font-size: 13px; cursor: pointer;
@@ -47,6 +47,8 @@
   }
   button:hover { background: #45475a; }
   button.primary { background: #cba6f7; color: #1e1e2e; border-color: #cba6f7; }
+  button.green { background: #a6e3a1; color: #1e1e2e; border-color: #a6e3a1; }
+  button.green:hover { background: #94d3a2; }
 </style>
 </head>
 <body>
@@ -58,6 +60,7 @@
   <div class="error-box" id="error-box"></div>
   <div class="btn-row" id="btn-row">
     <button class="primary" onclick="window.electronAPI?.retrySetup()">Retry</button>
+    <button id="get-python-btn" style="display:none" class="green" onclick="window.electronAPI?.openExternal('https://www.python.org/downloads/')">Get Python</button>
     <button onclick="window.electronAPI?.goToConnect()">Change Connection</button>
     <button onclick="window.electronAPI?.quitApp()">Quit</button>
   </div>
@@ -69,9 +72,14 @@
   window.electronAPI?.onSetupError(msg => {
     document.getElementById("bar").style.display = "none";
     document.getElementById("status").style.display = "none";
+    const isPythonMissing = msg.startsWith("PYTHON_MISSING:");
+    const displayMsg = isPythonMissing ? msg.slice("PYTHON_MISSING:".length) : msg;
     const err = document.getElementById("error-box");
-    err.textContent = msg;
+    err.textContent = displayMsg;
     err.style.display = "block";
+    if (isPythonMissing) {
+      document.getElementById("get-python-btn").style.display = "";
+    }
     document.getElementById("btn-row").style.display = "flex";
   });
 </script>
