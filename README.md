@@ -12,13 +12,13 @@ Get the desktop app for your platform. No account needed — just download and r
 
 | Platform | Download |
 |---|---|
-| **Windows** (x64, installer) | [morpheus-1.0.0-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-setup.exe) |
-| **Windows** (x64, portable) | [morpheus-1.0.0-x64.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.exe) |
-| **macOS** (Apple Silicon) | [morpheus-1.0.0-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-arm64.dmg) |
-| **macOS** (Intel) | [morpheus-1.0.0-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.dmg) |
-| **Linux** (AppImage) | [morpheus-1.0.0-x64.AppImage](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.AppImage) |
-| **Linux** (deb) | [morpheus-1.0.0-x64.deb](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.deb) |
-| **Linux** (rpm) | [morpheus-1.0.0-x64.rpm](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.rpm) |
+| **Windows** (x64, installer) | [⬇ morpheus-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-setup.exe) |
+| **Windows** (x64, portable) | [⬇ morpheus-portable.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.exe) |
+| **macOS** (Apple Silicon) | [⬇ morpheus-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-arm64.dmg) |
+| **macOS** (Intel x64) | [⬇ morpheus-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.dmg) |
+| **Linux** (AppImage) | [⬇ morpheus-x64.AppImage](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.AppImage) |
+| **Linux** (deb — Ubuntu/Debian) | [⬇ morpheus-x64.deb](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.deb) |
+| **Linux** (rpm — Fedora/RHEL) | [⬇ morpheus-x64.rpm](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.rpm) |
 
 > **macOS note:** The app is not code-signed. On first launch, right-click → Open → Open to bypass Gatekeeper.
 >
