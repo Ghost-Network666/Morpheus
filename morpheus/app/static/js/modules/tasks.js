@@ -94,3 +94,7 @@ function showNewTaskModal() {
     } catch (e) { toast(e.message, "error"); }
   }, { once: true });
 }
+
+export async function reloadTasks() {
+  await loadTasks();
+}

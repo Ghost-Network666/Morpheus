@@ -83,3 +83,7 @@ async function deleteNote() {
     else { document.getElementById("note-title").value = ""; document.getElementById("note-content").value = ""; }
   } catch (e) { toast(e.message, "error"); }
 }
+
+export async function reloadNotes() {
+  await loadNotes();
+}

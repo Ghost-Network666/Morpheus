@@ -81,3 +81,7 @@ function showEventModal(prefilledDate = "") {
     } catch (e) { toast(e.message, "error"); }
   }, { once: true });
 }
+
+export async function reloadCalendar() {
+  await loadEvents();
+}

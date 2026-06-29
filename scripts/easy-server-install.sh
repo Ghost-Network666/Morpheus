@@ -96,15 +96,25 @@ install_systemd() {
 [Unit]
 Description=Morpheus AI Workspace
 After=network.target
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=$USER
 WorkingDirectory=$INSTALL_DIR/morpheus
-ExecStart=$INSTALL_DIR/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT
+EnvironmentFile=$INSTALL_DIR/morpheus/.env
+ExecStart=$INSTALL_DIR/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --log-level info
 Restart=on-failure
-RestartSec=5s
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
 Environment=PYTHONUNBUFFERED=1
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=$INSTALL_DIR/morpheus/data
 
 [Install]
 WantedBy=multi-user.target

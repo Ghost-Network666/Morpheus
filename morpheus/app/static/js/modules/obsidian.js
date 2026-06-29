@@ -216,3 +216,7 @@ function _bindEvents() {
     _searchTimer = setTimeout(() => _loadNotes(e.target.value), 250);
   });
 }
+
+export async function reloadNotes() {
+  await _loadNotes();
+}
