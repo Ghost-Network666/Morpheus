@@ -409,11 +409,11 @@ ipcMain.handle("get-connections", () => ({
 
 ipcMain.handle("get-version", () => VERSION);
 
-ipcMain.handle("remote-install", (event, { host, port, username, password }) => {
+ipcMain.handle("remote-install", (event, { host, port, username, password, authType, keyPath, passphrase }) => {
   const { remoteInstall } = require("./remote-install");
   return new Promise((resolve) => {
     remoteInstall(
-      { host, port, username, password },
+      { host, port, username, password, authType, keyPath, passphrase },
       (msg) => {
         if (!event.sender.isDestroyed()) {
           event.sender.send("remote-install-progress", msg);
@@ -422,4 +422,20 @@ ipcMain.handle("remote-install", (event, { host, port, username, password }) => 
       (err) => resolve({ ok: !err, error: err || null }),
     );
   });
+});
+
+ipcMain.handle("list-ssh-keys", () => {
+  const { listSshKeys } = require("./remote-install");
+  return listSshKeys();
+});
+
+ipcMain.handle("browse-ssh-key", async (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const result = await dialog.showOpenDialog(win, {
+    title: "Select SSH Private Key",
+    properties: ["openFile"],
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  const keyPath = result.filePaths[0];
+  return { path: keyPath, name: path.basename(keyPath) };
 });

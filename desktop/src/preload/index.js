@@ -29,4 +29,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ── Remote server install ──────────────────────────────────────────────────
   remoteInstall:          (creds) => ipcRenderer.invoke("remote-install", creds),
   onRemoteInstallProgress:(cb)    => ipcRenderer.on("remote-install-progress", (_e, msg) => cb(msg)),
+  listSshKeys:             ()    => ipcRenderer.invoke("list-ssh-keys"),
+  browseSshKey:            ()    => ipcRenderer.invoke("browse-ssh-key"),
 });

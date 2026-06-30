@@ -161,6 +161,37 @@
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
+  .auth-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
+  .auth-toggle button {
+    flex: 1; padding: 8px 10px; border-radius: 7px; border: 1.5px solid #313244;
+    background: #181825; color: #a6adc8; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: border-color .15s, color .15s, background .15s;
+  }
+  .auth-toggle button.active { border-color: #cba6f7; color: #cba6f7; background: #211e30; }
+  .auth-toggle button:hover:not(.active) { border-color: #585b70; }
+
+  .auth-pane { display: none; }
+  .auth-pane.visible { display: block; }
+
+  select {
+    width: 100%; padding: 9px 12px;
+    background: #181825; border: 1.5px solid #313244;
+    border-radius: 8px; color: #cdd6f4; font-size: 14px;
+    outline: none; transition: border-color .15s;
+  }
+  select:focus { border-color: #cba6f7; }
+
+  .key-row { display: flex; gap: 8px; }
+  .key-row select { flex: 1; }
+  .btn-browse {
+    padding: 9px 12px; border-radius: 8px; border: 1.5px solid #313244;
+    background: transparent; color: #a6adc8; font-size: 12px;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: border-color .15s, color .15s;
+  }
+  .btn-browse:hover { border-color: #cba6f7; color: #cba6f7; }
+  .auth-hint { font-size: 11px; color: #585b70; margin-top: 6px; line-height: 1.5; }
+
   .progress-wrap {
     display: none; margin-top: 12px;
     background: #11111b; border: 1.5px solid #313244;
@@ -238,10 +269,37 @@
           <input type="text" id="ssh-port" value="22">
         </div>
       </div>
-      <div class="field">
-        <label for="ssh-pass">SSH Password</label>
-        <input type="password" id="ssh-pass" placeholder="Password">
+      <div class="auth-toggle" id="auth-toggle">
+        <button type="button" class="active" data-auth="password" onclick="setSshAuthMethod('password')">Password</button>
+        <button type="button" data-auth="key" onclick="setSshAuthMethod('key')">SSH Key</button>
+        <button type="button" data-auth="agent" onclick="setSshAuthMethod('agent')">SSH Agent</button>
       </div>
+
+      <div class="auth-pane visible" id="auth-pane-password">
+        <div class="field">
+          <label for="ssh-pass">SSH Password</label>
+          <input type="password" id="ssh-pass" placeholder="Password">
+        </div>
+      </div>
+
+      <div class="auth-pane" id="auth-pane-key">
+        <div class="field">
+          <label for="ssh-key-select">Private Key</label>
+          <div class="key-row">
+            <select id="ssh-key-select"></select>
+            <button type="button" class="btn-browse" onclick="browseForKey()">Browse…</button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="ssh-key-pass">Passphrase (if encrypted)</label>
+          <input type="password" id="ssh-key-pass" placeholder="Leave blank if none">
+        </div>
+      </div>
+
+      <div class="auth-pane" id="auth-pane-agent">
+        <div class="auth-hint">Uses keys loaded in your running SSH agent (ssh-agent / Pageant). No password or key file needed here.</div>
+      </div>
+
       <button class="btn btn-primary" id="ssh-install-btn" onclick="doRemoteInstall()" style="margin-top:4px">
         Install Morpheus on Server
       </button>
@@ -353,9 +411,57 @@
     } catch (_) {}
   }
 
+  let sshAuthType = "password";
+  let sshKeys = [];
+
   function toggleSshForm() {
     const form = document.getElementById("ssh-form");
+    const wasVisible = form.classList.contains("visible");
     form.classList.toggle("visible");
+    if (!wasVisible) _loadSshKeys();
+  }
+
+  async function _loadSshKeys() {
+    const select = document.getElementById("ssh-key-select");
+    select.innerHTML = `<option value="">Loading keys…</option>`;
+    sshKeys = (await window.electronAPI.listSshKeys()) || [];
+    _renderKeySelect();
+  }
+
+  function _renderKeySelect() {
+    const select = document.getElementById("ssh-key-select");
+    select.innerHTML = "";
+    if (!sshKeys.length) {
+      select.innerHTML = `<option value="">No keys found in ~/.ssh</option>`;
+      return;
+    }
+    sshKeys.forEach((k, i) => {
+      const opt = document.createElement("option");
+      opt.value = k.path;
+      opt.textContent = k.name;
+      if (i === 0) opt.selected = true;
+      select.appendChild(opt);
+    });
+  }
+
+  async function browseForKey() {
+    const picked = await window.electronAPI.browseSshKey();
+    if (!picked) return;
+    if (!sshKeys.find((k) => k.path === picked.path)) {
+      sshKeys.unshift(picked);
+    }
+    _renderKeySelect();
+    document.getElementById("ssh-key-select").value = picked.path;
+  }
+
+  function setSshAuthMethod(type) {
+    sshAuthType = type;
+    document.querySelectorAll("#auth-toggle button").forEach((b) => {
+      b.classList.toggle("active", b.dataset.auth === type);
+    });
+    ["password", "key", "agent"].forEach((t) => {
+      document.getElementById(`auth-pane-${t}`).classList.toggle("visible", t === type);
+    });
   }
 
   async function doRemoteInstall() {
@@ -364,7 +470,18 @@
     try { host = new URL(url).hostname; } catch (_) { host = url; }
     const port     = document.getElementById("ssh-port").value.trim() || "22";
     const username = document.getElementById("ssh-user").value.trim() || "ubuntu";
-    const password = document.getElementById("ssh-pass").value;
+
+    const payload = { host, port, username, authType: sshAuthType };
+    if (sshAuthType === "password") {
+      payload.password = document.getElementById("ssh-pass").value;
+    } else if (sshAuthType === "key") {
+      payload.keyPath    = document.getElementById("ssh-key-select").value;
+      payload.passphrase = document.getElementById("ssh-key-pass").value;
+      if (!payload.keyPath) {
+        alert("Select or browse for a private key first.");
+        return;
+      }
+    }
 
     const logEl  = document.getElementById("progress-log");
     const wrap   = document.getElementById("progress-wrap");
@@ -380,7 +497,7 @@
       wrap.scrollTop = wrap.scrollHeight;
     });
 
-    const result = await window.electronAPI.remoteInstall({ host, port, username, password });
+    const result = await window.electronAPI.remoteInstall(payload);
 
     btn.disabled = false;
     if (result.ok) {
