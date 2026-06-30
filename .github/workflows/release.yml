@@ -40,10 +40,10 @@ jobs:
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
 
-  # ── macOS x64 (Intel runner — avoids cross-compile for Python deps) ──────────
-  build-mac-x64:
+  # ── macOS (builds both x64 and arm64) ──────────────────────────────────────
+  build-mac:
     needs: prepare
-    runs-on: macos-13
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -81,37 +81,6 @@ jobs:
             npx electron-builder --mac --x64 --publish always
           fi
 
-      - uses: actions/upload-artifact@v4
-        if: needs.prepare.outputs.dry_run == 'true'
-        with:
-          name: mac-x64-artifacts
-          path: desktop/dist/*.dmg
-
-  # ── macOS arm64 (Apple Silicon runner) ────────────────────────────────────
-  build-mac-arm64:
-    needs: prepare
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
-
-      - name: Install desktop dependencies
-        working-directory: desktop
-        run: npm ci
-
-      - name: Install renderer dependencies
-        working-directory: desktop/app
-        run: npm ci
-
-      - name: Build renderer
-        working-directory: desktop/app
-        run: npm run build
-
       - name: Fetch Python runtime (arm64)
         working-directory: desktop
         run: node scripts/fetch-python-runtime.js mac-arm64
@@ -131,7 +100,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: needs.prepare.outputs.dry_run == 'true'
         with:
-          name: mac-arm64-artifacts
+          name: mac-artifacts
           path: desktop/dist/*.dmg
 
   # ── Windows ─────────────────────────────────────────────────────────────────

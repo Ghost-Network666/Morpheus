@@ -68,17 +68,41 @@ async function main() {
   }
 
   console.log("[python-runtime] Installing backend dependencies into runtime...");
-  // On arm64 CI runners building the x64 runtime, pip needs explicit platform
-  // hints so it downloads x86_64 wheels instead of trying to cross-compile.
-  const pipEnv = { ...process.env };
+
+  let findLinksArgs = [];
   if (target === "mac-x64") {
-    pipEnv["_PYTHON_HOST_PLATFORM"] = "macosx-10.12-x86_64";
-    pipEnv["ARCHFLAGS"] = "-arch x86_64";
+    // On arm64 CI runners, maturin/Cargo detects aarch64 as HOST even when
+    // pip runs under the x64 Python via Rosetta, so packages with Rust
+    // extensions (cryptography, bcrypt) fail to cross-compile.  Use the
+    // system (arm64) pip to pre-fetch prebuilt x86_64 binary wheels for
+    // those packages; pass --find-links so the x64 pip installs them
+    // directly without invoking the Rust build toolchain.
+    const wheelDir = path.join(os.tmpdir(), `morpheus-x64-wheels`);
+    fs.mkdirSync(wheelDir, { recursive: true });
+    for (const pkg of ["cryptography==49.0.0", "bcrypt==5.0.0"]) {
+      try {
+        execFileSync("python3", [
+          "-m", "pip", "download",
+          "--platform", "macosx_10_9_x86_64",
+          "--python-version", "311",
+          "--implementation", "cp",
+          "--only-binary", ":all:",
+          "--no-deps",
+          "--dest", wheelDir,
+          pkg,
+        ], { stdio: "inherit" });
+      } catch (e) {
+        console.warn(`[python-runtime] Warning: pre-fetch of ${pkg} skipped: ${e.message}`);
+      }
+    }
+    findLinksArgs = ["--find-links", wheelDir];
   }
+
   execFileSync(
     pythonBin,
-    ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary", "-r", REQUIREMENTS],
-    { stdio: "inherit", env: pipEnv }
+    ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary",
+     ...findLinksArgs, "-r", REQUIREMENTS],
+    { stdio: "inherit" }
   );
 
   console.log("[python-runtime] Stripping __pycache__...");
