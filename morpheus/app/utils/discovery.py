@@ -8,7 +8,6 @@ Sources (in order, all best-effort):
 """
 
 import asyncio
-import json
 import logging
 import socket
 import httpx
@@ -85,7 +84,7 @@ async def _mdns_discover(timeout: float) -> list[dict]:
     """Browse LAN for _morpheus._tcp.local. services."""
     results: list[dict] = []
     try:
-        from zeroconf import ServiceBrowser, Zeroconf
+        from zeroconf import ServiceBrowser
         from zeroconf.asyncio import AsyncZeroconf
 
         found: list[dict] = []
@@ -104,6 +103,7 @@ async def _mdns_discover(timeout: float) -> list[dict]:
         azc = AsyncZeroconf()
         browser = ServiceBrowser(azc.zeroconf, "_morpheus._tcp.local.", _Handler())
         await asyncio.sleep(min(timeout, 3))
+        browser.cancel()
         await azc.async_close()
         results = found
     except ImportError:

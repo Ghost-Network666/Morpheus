@@ -22,7 +22,6 @@ def _get_collection():
 
     try:
         import chromadb
-        from chromadb.config import Settings as ChromaSettings
 
         if settings.chroma_in_process:
             persist_path = os.path.join(settings.data_dir, "chroma")

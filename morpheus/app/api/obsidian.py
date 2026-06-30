@@ -4,14 +4,12 @@ Obsidian vault integration — read/write markdown files from a local vault dire
 Configure the vault path via OBSIDIAN_VAULT_PATH in .env or Settings.
 """
 
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import select, or_
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import AsyncSessionLocal

@@ -7,8 +7,7 @@ from app.models.ssh import SSHProfile
 from app.models.user import User
 from app.api.auth import require_user
 from app.core import ssh_client
-from app.core import terminal_manager
-from app.utils.vault import encrypt, decrypt
+from app.utils.vault import encrypt
 
 router = APIRouter(prefix="/api/ssh", tags=["ssh"])
 

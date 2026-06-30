@@ -1,8 +1,7 @@
 import subprocess
 import platform
 import json
-import asyncio
-from typing import AsyncIterator, Optional
+from typing import AsyncIterator
 import httpx
 from app.config import settings
 

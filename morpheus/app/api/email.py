@@ -169,7 +169,6 @@ async def _fetch_imap(account: EmailAccount) -> list[dict]:
     import aioimaplib
     from datetime import datetime, timezone
     import email
-    from email.header import decode_header
 
     password = decrypt(account.password_encrypted)
 

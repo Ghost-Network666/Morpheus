@@ -43,7 +43,6 @@ async def _tool_shell(command: str, profile_id: Optional[int] = None) -> str:
         result = out + err
         return result[:4000] if result else f"Exit code: {rc}"
     else:
-        import subprocess
         try:
             proc = await asyncio.create_subprocess_shell(
                 command,

@@ -1,6 +1,5 @@
 import asyncio
 import json
-import sys
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect, Request
 from app.api.auth import require_user
 from app.models.user import User
