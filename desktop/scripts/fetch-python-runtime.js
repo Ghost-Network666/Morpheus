@@ -69,44 +69,6 @@ async function main() {
 
   console.log("[python-runtime] Installing backend dependencies into runtime...");
 
-  if (target === "mac-x64") {
-    // On arm64 CI runners, maturin/Cargo detects aarch64 as HOST even when
-    // pip runs under the x64 Python via Rosetta, so packages with Rust
-    // extensions (cryptography, bcrypt) fail to cross-compile. Fix: use the
-    // arm64 system pip to download prebuilt x86_64 binary wheels, then
-    // install them with --no-index so pip is forced to use the local wheel
-    // and never falls back to a source build.
-    const wheelDir = path.join(os.tmpdir(), "morpheus-x64-wheels");
-    fs.mkdirSync(wheelDir, { recursive: true });
-
-    const rustPkgs = ["cryptography==49.0.0", "bcrypt==5.0.0"];
-    for (const pkg of rustPkgs) {
-      execFileSync("python3", [
-        "-m", "pip", "download",
-        "--platform", "macosx_10_9_x86_64",
-        "--python-version", "311",
-        "--implementation", "cp",
-        "--only-binary", ":all:",
-        "--no-deps",
-        "--dest", wheelDir,
-        pkg,
-      ], { stdio: "inherit" });
-    }
-
-    const fetched = fs.readdirSync(wheelDir);
-    console.log(`[python-runtime] Pre-fetched wheels: ${fetched.join(", ")}`);
-
-    // --no-index: use ONLY the local wheel dir, no PyPI / no source build fallback
-    // --no-deps: skip dep resolution here; the requirements.txt install below covers deps
-    execFileSync(pythonBin, [
-      "-m", "pip", "install", "--no-cache-dir",
-      "--no-index", "--find-links", wheelDir,
-      "--no-deps",
-      ...rustPkgs,
-    ], { stdio: "inherit" });
-  }
-
-  // Install all requirements. Packages already installed above are skipped.
   execFileSync(
     pythonBin,
     ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary", "-r", REQUIREMENTS],
