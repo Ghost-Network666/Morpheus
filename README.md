@@ -12,10 +12,10 @@ Get the desktop app for your platform. No account needed — just download and r
 
 | Platform | Download |
 |---|---|
-| **Windows** (x64, installer) | [⬇ morpheus-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-setup.exe) |
-| **Windows** (x64, portable) | [⬇ morpheus-portable.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.exe) |
-| **macOS** (Apple Silicon) | [⬇ morpheus-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-arm64.dmg) |
-| **macOS** (Intel x64) | [⬇ morpheus-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.dmg) |
+| **Windows** (x64, installer) | [⬇ morpheus-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-setup.exe) |
+| **Windows** (x64, portable) | [⬇ morpheus-portable.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-portable.exe) |
+| **macOS** (Apple Silicon) | [⬇ morpheus-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-arm64.dmg) |
+| **macOS** (Intel x64) | [⬇ morpheus-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-x64.dmg) |
 
 > **macOS note:** The app is not code-signed. On first launch, right-click → Open → Open to bypass Gatekeeper.
 >
