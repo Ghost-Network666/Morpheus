@@ -129,6 +129,7 @@ Run Morpheus on a server and access it from any device:
 ### systemd service (Linux)
 
 ```bash
+# from the morpheus/morpheus directory (see Server Setup in README.md)
 sudo cp scripts/morpheus.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now morpheus

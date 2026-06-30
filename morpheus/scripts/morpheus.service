@@ -7,10 +7,10 @@ Wants=network-online.target
 Type=simple
 User=morpheus
 Group=morpheus
-WorkingDirectory=/opt/morpheus
-EnvironmentFile=/opt/morpheus/.env
-ExecStartPre=/opt/morpheus/venv/bin/python scripts/setup.py
-ExecStart=/opt/morpheus/venv/bin/uvicorn app.main:app \
+WorkingDirectory=/opt/morpheus/morpheus
+EnvironmentFile=/opt/morpheus/morpheus/.env
+ExecStartPre=/opt/morpheus/morpheus/venv/bin/python scripts/setup.py
+ExecStart=/opt/morpheus/morpheus/venv/bin/uvicorn app.main:app \
     --host 0.0.0.0 \
     --port 7860 \
     --workers 1 \
@@ -24,7 +24,7 @@ StandardError=journal
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/opt/morpheus/data
+ReadWritePaths=/opt/morpheus/morpheus/data
 
 [Install]
 WantedBy=multi-user.target

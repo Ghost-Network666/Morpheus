@@ -29,21 +29,21 @@ A powerful self-hosted AI workspace that runs locally on macOS, Windows, and Lin
 
 ### macOS
 ```bash
-git clone <repo> morpheus && cd morpheus
+git clone https://github.com/Ghost-Network666/Morpheus morpheus && cd morpheus/morpheus
 cp .env.example .env
 bash scripts/start-macos.sh
 ```
 
 ### Windows
 ```powershell
-git clone <repo> morpheus; cd morpheus
+git clone https://github.com/Ghost-Network666/Morpheus morpheus; cd morpheus\morpheus
 Copy-Item .env.example .env
 .\scripts\launch-windows.ps1
 ```
 
 ### Linux / Ubuntu Server
 ```bash
-git clone <repo> morpheus && cd morpheus
+git clone https://github.com/Ghost-Network666/Morpheus morpheus && cd morpheus/morpheus
 cp .env.example .env
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
@@ -67,7 +67,6 @@ Copy `.env.example` to `.env` and adjust:
 ```env
 APP_HOST=127.0.0.1      # Use 0.0.0.0 for server installs
 APP_PORT=7860
-AUTH_ENABLED=false       # Set true for server installs
 OLLAMA_URL=http://localhost:11434
 DEFAULT_MODEL=llama3.2:3b
 ```
@@ -95,9 +94,8 @@ sudo systemctl enable --now morpheus
 sudo systemctl status morpheus
 ```
 
-Enable auth for server installs:
+For network-accessible installs, set in `.env`:
 ```env
-AUTH_ENABLED=true
 APP_HOST=0.0.0.0
 ```
 
@@ -151,11 +149,10 @@ pytest tests/ -v
 
 ## Security
 
-- Auth disabled by default for localhost; enable for any network-accessible install
+- No accounts, no logins — Morpheus is single-owner and access is controlled at the network level (Tailscale, LAN, reverse proxy)
 - Secrets encrypted with AES-256 (Fernet) in the Vault
 - SSH credentials stored encrypted
 - No telemetry — zero data sent externally unless you configure external providers
-- Session cookies are HttpOnly and SameSite=Lax
 
 ---
 

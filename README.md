@@ -63,6 +63,16 @@ Run Morpheus on a server and connect from the desktop app or any browser. See [S
 
 ### Linux / Ubuntu
 
+One-command install (Ubuntu/Debian — installs Python, Ollama, clones to `~/morpheus`, and sets up a systemd service running as your user):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Ghost-Network666/Morpheus/main/scripts/easy-server-install.sh | bash
+```
+
+This is also what the desktop app's **Remote Install** (connect screen → SSH) runs on your behalf.
+
+Or set it up manually:
+
 ```bash
 git clone https://github.com/Ghost-Network666/Morpheus morpheus
 cd morpheus/morpheus
@@ -83,6 +93,9 @@ docker compose up -d
 ### macOS / Windows (server mode)
 
 ```bash
+git clone https://github.com/Ghost-Network666/Morpheus morpheus
+cd morpheus/morpheus
+
 # macOS
 bash scripts/start-macos.sh
 
@@ -92,10 +105,23 @@ bash scripts/start-macos.sh
 
 ### Run as a systemd service
 
+The bundled unit file expects the app at `/opt/morpheus`, run by a dedicated `morpheus` system user:
+
 ```bash
+sudo useradd -r -s /usr/sbin/nologin morpheus
+sudo git clone https://github.com/Ghost-Network666/Morpheus /opt/morpheus
+cd /opt/morpheus/morpheus
+sudo python3 -m venv venv
+sudo ./venv/bin/pip install -r requirements.txt
+sudo cp .env.example .env   # edit as needed
+sudo chown -R morpheus:morpheus /opt/morpheus
+
 sudo cp scripts/morpheus.service /etc/systemd/system/
+sudo systemctl daemon-reload
 sudo systemctl enable --now morpheus
 ```
+
+For a simpler setup that runs as your own user instead of a dedicated `morpheus` account, use the [one-command installer](#linux--ubuntu) above — it generates a matching systemd unit automatically.
 
 ---
 
@@ -174,6 +200,20 @@ npm run build:mac    # or build:win / build:linux
 ```
 
 Output goes to `desktop/dist/`.
+
+### Portable executable (no Electron)
+
+A lighter alternative that bundles the Python backend alone into a single tray-app executable, using the legacy web UI instead of the Electron renderer:
+
+```bash
+cd morpheus
+
+# Windows — outputs dist\Morpheus.exe
+.\scripts\build-windows-portable.ps1
+
+# macOS — outputs dist/Morpheus.app
+bash scripts/build-macos-app.sh
+```
 
 ---
 
