@@ -16,13 +16,12 @@ Get the desktop app for your platform. No account needed — just download and r
 | **Windows** (x64, portable) | [⬇ morpheus-portable.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.exe) |
 | **macOS** (Apple Silicon) | [⬇ morpheus-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-arm64.dmg) |
 | **macOS** (Intel x64) | [⬇ morpheus-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.dmg) |
-| **Linux** (AppImage) | [⬇ morpheus-x64.AppImage](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.AppImage) |
-| **Linux** (deb — Ubuntu/Debian) | [⬇ morpheus-x64.deb](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.deb) |
-| **Linux** (rpm — Fedora/RHEL) | [⬇ morpheus-x64.rpm](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-1.0.0-x64.rpm) |
 
 > **macOS note:** The app is not code-signed. On first launch, right-click → Open → Open to bypass Gatekeeper.
 >
 > **Windows note:** SmartScreen may warn about an unknown publisher — click "More info → Run anyway".
+>
+> **Linux servers:** no download or ISO needed. Install from the Windows/macOS app's connect screen via **Remote Install** (SSH — password, key, or agent), or manually with the [Server Setup](#server-setup) steps below.
 
 All releases: [github.com/Ghost-Network666/Morpheus/releases](https://github.com/Ghost-Network666/Morpheus/releases)
 
