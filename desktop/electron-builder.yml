@@ -5,6 +5,7 @@ copyright: Copyright © 2025 Ghost Network
 directories:
   buildResources: assets
   output: dist
+  app: "."
 
 # Consistent artifact naming (no version in filename for stable download links)
 artifactName: morpheus-${arch}.${ext}
@@ -46,6 +47,15 @@ extraResources:
 files:
   - src/**/*
   - app/dist/**/*
+  - "!app/src/**"
+  - "!app/node_modules/**"
+  - "!app/package.json"
+  - "!app/package-lock.json"
+  - "!app/tsconfig*.json"
+  - "!app/vite.config.ts"
+  - "!app/postcss.config.js"
+  - "!app/tailwind.config.js"
+  - "!app/index.html"
 
 # ── Windows ───────────────────────────────────────────────────────────────────
 win:
