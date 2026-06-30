@@ -68,7 +68,18 @@ async function main() {
   }
 
   console.log("[python-runtime] Installing backend dependencies into runtime...");
-  execFileSync(pythonBin, ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary", "-r", REQUIREMENTS], { stdio: "inherit" });
+  // On arm64 CI runners building the x64 runtime, pip needs explicit platform
+  // hints so it downloads x86_64 wheels instead of trying to cross-compile.
+  const pipEnv = { ...process.env };
+  if (target === "mac-x64") {
+    pipEnv["_PYTHON_HOST_PLATFORM"] = "macosx-10.12-x86_64";
+    pipEnv["ARCHFLAGS"] = "-arch x86_64";
+  }
+  execFileSync(
+    pythonBin,
+    ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary", "-r", REQUIREMENTS],
+    { stdio: "inherit", env: pipEnv }
+  );
 
   console.log("[python-runtime] Stripping __pycache__...");
   stripPycache(OUT_DIR);
