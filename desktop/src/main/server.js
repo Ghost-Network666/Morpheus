@@ -5,32 +5,30 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 
 const PORT = 7860;
-const READY_TIMEOUT_MS = 120_000;  // 2 min for first-run venv creation
+const READY_TIMEOUT_MS = 120_000;  // 2 min for first-run venv creation (dev mode only)
 const POLL_INTERVAL_MS = 500;
 
 let serverProc = null;
 let _state = { status: "idle", pid: null };
 
 // ── Entry point ───────────────────────────────────────────────────────────────
+// Packaged builds ship a self-contained Python runtime (desktop/python-runtime/,
+// produced by scripts/fetch-python-runtime.js) with all backend dependencies
+// pre-installed, so there is nothing to download or install at runtime — the
+// backend just starts. Dev mode (`npm start --dev`) falls back to a system
+// Python + local venv since no bundled runtime exists when running from source.
 async function startServer(onProgress) {
   const appDir  = _appDir();
   const dataDir = path.join(app.getPath("userData"), "data");
-  const venvDir = path.join(app.getPath("userData"), "venv");
-  const python  = await _resolvePython();
 
   onProgress?.("Checking environment…");
 
-  if (!fs.existsSync(path.join(venvDir, "pyvenv.cfg"))) {
-    onProgress?.("Creating Python environment (first run)…");
-    await _runSetup(python, appDir, venvDir, dataDir, onProgress);
-  } else {
-    // Still reinstall in case requirements changed (fast when up to date)
-    onProgress?.("Checking dependencies…");
-    await _pip(venvDir, appDir);
-  }
+  const python = app.isPackaged
+    ? _bundledPython()
+    : await _devPython(appDir, onProgress);
 
   onProgress?.("Starting Morpheus backend…");
-  await _spawnServer(venvDir, appDir, dataDir);
+  await _spawnServer(python, appDir, dataDir);
   onProgress?.("Waiting for server…");
   await _waitReady();
   _state = { status: "running", pid: serverProc.pid };
@@ -50,7 +48,38 @@ function _appDir() {
     : path.join(__dirname, "../../../morpheus");
 }
 
-async function _resolvePython() {
+function _bundledPython() {
+  const runtimeDir = path.join(process.resourcesPath, "python-runtime");
+  const bin = process.platform === "win32"
+    ? path.join(runtimeDir, "python.exe")
+    : path.join(runtimeDir, "bin", "python3");
+
+  if (!fs.existsSync(bin)) {
+    throw new Error(
+      "This Morpheus build is missing its bundled Python runtime. Please reinstall the latest version from the Morpheus releases page."
+    );
+  }
+  return bin;
+}
+
+// ── Dev-mode only (never reached in a packaged install) ────────────────────────
+async function _devPython(appDir, onProgress) {
+  const dataDirParent = app.getPath("userData");
+  const venvDir = path.join(dataDirParent, "venv");
+  const python = await _resolveSystemPython();
+
+  if (!fs.existsSync(path.join(venvDir, "pyvenv.cfg"))) {
+    onProgress?.("Creating Python environment (first run, dev mode)…");
+    const { runSetup } = require("./setup");
+    await runSetup({ python, appDir, venvDir, dataDir: path.join(dataDirParent, "data"), onProgress });
+  } else {
+    onProgress?.("Checking dependencies…");
+    await _pip(venvDir, appDir);
+  }
+  return _venvBin(venvDir, "python");
+}
+
+async function _resolveSystemPython() {
   const candidates = process.platform === "win32"
     ? _windowsPythonCandidates()
     : ["python3", "python"];
@@ -65,21 +94,8 @@ async function _resolvePython() {
     } catch (_) {}
   }
 
-  if (process.platform === "win32") {
-    await _tryInstallPythonWindows();
-    for (const cmd of _windowsPythonCandidates()) {
-      try {
-        const ver = await _run(cmd, ["--version"]);
-        const m = ver.match(/(\d+)\.(\d+)/);
-        if (m && (parseInt(m[1]) > 3 || (parseInt(m[1]) === 3 && parseInt(m[2]) >= 10))) {
-          return cmd;
-        }
-      } catch (_) {}
-    }
-  }
-
   throw new Error(
-    "PYTHON_MISSING:Python 3.10+ is required but was not found on this machine.\n\nMorpheus will open the Python download page — install Python 3.11 or newer, then click Retry."
+    "Python 3.10+ is required to run Morpheus in development mode. Install it from https://www.python.org/downloads/, then retry."
   );
 }
 
@@ -97,42 +113,32 @@ function _windowsPythonCandidates() {
   return ["python", "python3", "py", ...base];
 }
 
-async function _tryInstallPythonWindows() {
-  try {
-    await _run("winget", [
-      "install", "--id", "Python.Python.3.11", "-e",
-      "--silent", "--scope", "machine", "--accept-package-agreements",
-      "--accept-source-agreements",
-    ]);
-  } catch (_) {}
-}
-
-async function _runSetup(python, appDir, venvDir, dataDir, onProgress) {
-  const { runSetup } = require("./setup");
-  await runSetup({ python, appDir, venvDir, dataDir, onProgress });
-}
-
 async function _pip(venvDir, appDir) {
-  const pip = _venvBin(venvDir, "pip");
+  const python = _venvBin(venvDir, "python");
   const req = path.join(appDir, "requirements.txt");
   if (!fs.existsSync(req)) return;
-  await _run(pip, ["install", "-q", "-r", req]);
+  await _run(python, ["-m", "pip", "install", "-q", "-r", req]);
 }
 
-async function _spawnServer(venvDir, appDir, dataDir) {
-  const uvicorn = _venvBin(venvDir, "uvicorn");
+function _venvBin(venvDir, name) {
+  return process.platform === "win32"
+    ? path.join(venvDir, "Scripts", `${name}.exe`)
+    : path.join(venvDir, "bin", name);
+}
+
+// ── Shared ────────────────────────────────────────────────────────────────────
+async function _spawnServer(python, appDir, dataDir) {
   const env = {
     ...process.env,
     DATA_DIR: dataDir,
     PORT: String(PORT),
     HOST: "127.0.0.1",
-    // Disable colour codes so logs are clean
     NO_COLOR: "1",
   };
 
   fs.mkdirSync(dataDir, { recursive: true });
 
-  serverProc = spawn(uvicorn, ["app.main:app", "--host", "127.0.0.1", "--port", String(PORT)], {
+  serverProc = spawn(python, ["-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", String(PORT)], {
     cwd: appDir,
     env,
     stdio: ["ignore", "pipe", "pipe"],
@@ -142,7 +148,7 @@ async function _spawnServer(venvDir, appDir, dataDir) {
 
   serverProc.stdout.on("data", d => process.stdout.write(`[backend] ${d}`));
   serverProc.stderr.on("data", d => process.stderr.write(`[backend] ${d}`));
-  serverProc.on("exit", (code) => {
+  serverProc.on("exit", () => {
     _state = { status: "stopped", pid: null };
   });
 }
@@ -157,12 +163,6 @@ async function _waitReady() {
     await _sleep(POLL_INTERVAL_MS);
   }
   throw new Error("Backend did not respond within 2 minutes. Check logs for details.");
-}
-
-function _venvBin(venvDir, name) {
-  return process.platform === "win32"
-    ? path.join(venvDir, "Scripts", `${name}.exe`)
-    : path.join(venvDir, "bin", name);
 }
 
 function _run(cmd, args) {

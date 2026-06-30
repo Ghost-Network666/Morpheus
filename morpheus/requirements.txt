@@ -1,78 +1,77 @@
 # Core
-fastapi==0.115.0
-uvicorn[standard]==0.30.6
-python-multipart==0.0.9
-python-dotenv==1.0.1
-pydantic==2.9.2
-pydantic-settings==2.5.2
+fastapi==0.138.2
+uvicorn[standard]==0.49.0
+python-multipart==0.0.32
+python-dotenv==1.2.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
 
 # Database
-sqlalchemy==2.0.35
-alembic==1.13.3
-aiosqlite==0.20.0
-asyncpg==0.29.0
+sqlalchemy==2.0.51
+aiosqlite==0.22.1
+asyncpg==0.31.0
 
 # Auth
-bcrypt==4.2.1
-python-jose[cryptography]==3.3.0
-pyotp==2.9.0
+bcrypt==5.0.0
+python-jose[cryptography]==3.5.0
+pyotp==2.10.0
 
 # HTTP
-httpx==0.27.2
-aiofiles==24.1.0
-anyio==4.6.0
+httpx==0.28.1
+aiofiles==25.1.0
+anyio==4.14.1
 
 # SSH / Terminal
-paramiko==3.5.1
-asyncssh==2.23.0
+paramiko==5.0.0
+asyncssh==2.24.0
 pywinpty==2.0.14; sys_platform == "win32"
 
 # AI / LLM
-openai==1.51.0
+openai==2.44.0
 
 # RAG
-chromadb==0.5.15
-fastembed==0.3.6
+chromadb==1.5.9
+fastembed==0.8.0
 
 # Document parsing
-pypdf==6.0.0
-python-docx==1.1.2
+pypdf==6.14.2
+python-docx==1.2.0
 openpyxl==3.1.5
-beautifulsoup4==4.12.3
-lxml==6.1.0
+beautifulsoup4==4.15.0
+lxml==6.1.1
 
 # Email
-aiosmtplib==3.0.2
-aioimaplib==2.0.0
+aiosmtplib==5.1.2
+aioimaplib==2.0.1
 
 # Calendar
-icalendar==6.0.0
-caldav==1.3.9
+icalendar==7.2.0
+caldav==3.2.1
 
 # Encryption
-cryptography==44.0.1
+cryptography==49.0.0
 
 # Image processing
-Pillow==10.4.0
+Pillow==12.2.0
 
 # Search
 duckduckgo-search>=6.0.0
 
 # Obsidian vault file watching
-watchdog==4.0.1
+watchdog==6.0.0
 
 # Network discovery
-zeroconf==0.149.5
+zeroconf==0.150.0
 
 # Utilities
-psutil==6.0.0
+psutil==7.2.2
 pystray==0.19.5
-Markdown==3.7
+Markdown==3.10.2
 
 # Testing
-pytest==8.3.3
-pytest-asyncio==0.24.0
-httpx==0.27.2
+pytest==9.1.1
+pytest-asyncio==1.4.0
+httpx==0.28.1
 
 # Transitive security pins
 h11>=0.16.0

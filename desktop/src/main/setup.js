@@ -4,7 +4,9 @@ const fs = require("fs");
 const { spawn } = require("child_process");
 
 /**
- * First-run setup: create venv and install requirements.
+ * Dev-mode first-run setup: create a venv and install requirements into it.
+ * Never called in a packaged build — packaged builds ship a bundled runtime
+ * with dependencies pre-installed via scripts/fetch-python-runtime.js.
  * @param {{ python, appDir, venvDir, dataDir, onProgress }} opts
  */
 async function runSetup({ python, appDir, venvDir, dataDir, onProgress }) {

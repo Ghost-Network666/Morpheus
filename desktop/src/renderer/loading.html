@@ -47,8 +47,6 @@
   }
   button:hover { background: #45475a; }
   button.primary { background: #cba6f7; color: #1e1e2e; border-color: #cba6f7; }
-  button.green { background: #a6e3a1; color: #1e1e2e; border-color: #a6e3a1; }
-  button.green:hover { background: #94d3a2; }
 </style>
 </head>
 <body>
@@ -60,7 +58,6 @@
   <div class="error-box" id="error-box"></div>
   <div class="btn-row" id="btn-row">
     <button class="primary" onclick="window.electronAPI?.retrySetup()">Retry</button>
-    <button id="get-python-btn" style="display:none" class="green" onclick="window.electronAPI?.openExternal('https://www.python.org/downloads/')">Get Python</button>
     <button onclick="window.electronAPI?.goToConnect()">Change Connection</button>
     <button onclick="window.electronAPI?.quitApp()">Quit</button>
   </div>
@@ -75,14 +72,9 @@
   window.electronAPI?.onSetupError(msg => {
     document.getElementById("bar").style.display = "none";
     document.getElementById("status").style.display = "none";
-    const isPythonMissing = msg.startsWith("PYTHON_MISSING:");
-    const displayMsg = isPythonMissing ? msg.slice("PYTHON_MISSING:".length) : msg;
     const err = document.getElementById("error-box");
-    err.textContent = displayMsg;
+    err.textContent = msg;
     err.style.display = "block";
-    if (isPythonMissing) {
-      document.getElementById("get-python-btn").style.display = "";
-    }
     document.getElementById("btn-row").style.display = "flex";
   });
 </script>

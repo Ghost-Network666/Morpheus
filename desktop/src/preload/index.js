@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   listSshKeys:             ()    => ipcRenderer.invoke("list-ssh-keys"),
   browseSshKey:            ()    => ipcRenderer.invoke("browse-ssh-key"),
 
+  // ── Updates ──────────────────────────────────────────────────────────────────
+  checkForUpdates: () => ipcRenderer.send("check-for-updates"),
+
   // ── Main app (bundled native UI) ─────────────────────────────────────────────
   getApiBase: () => ipcRenderer.invoke("get-api-base"),
 });

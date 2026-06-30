@@ -21,10 +21,13 @@ let activeConn    = null;
 let apiBase       = null;
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
+let _autoUpdater = null;
+
 function _initUpdater() {
   if (IS_DEV) return;
   try {
     const { autoUpdater } = require("electron-updater");
+    _autoUpdater = autoUpdater;
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
 
@@ -40,13 +43,51 @@ function _initUpdater() {
       if (choice === 0) autoUpdater.quitAndInstall();
     });
 
-    autoUpdater.on("error", () => {}); // silent — don't bother user with update errors
+    autoUpdater.on("update-not-available", () => {
+      if (_updateCheckManual) {
+        _updateCheckManual = false;
+        dialog.showMessageBox({
+          type: "info",
+          title: "Up to date",
+          message: `Morpheus v${VERSION} is the latest version.`,
+          buttons: ["OK"],
+        });
+      }
+    });
 
-    // Check after a short delay so the main window is visible first
+    autoUpdater.on("error", () => {
+      if (_updateCheckManual) {
+        _updateCheckManual = false;
+        dialog.showMessageBox({
+          type: "warning",
+          title: "Update check failed",
+          message: "Could not check for updates. Verify your internet connection and try again.",
+          buttons: ["OK"],
+        });
+      }
+    });
+
+    // Automatic check after a short delay so the main window is visible first
     setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 8000);
-  } catch (_) {
-    // electron-updater may not be installed in dev
+  } catch (_) {}
+}
+
+let _updateCheckManual = false;
+
+function _checkForUpdatesManually() {
+  if (!_autoUpdater) {
+    dialog.showMessageBox({
+      type: "info",
+      title: "Update check unavailable",
+      message: "Automatic updates are only available in the packaged app.",
+      buttons: ["OK"],
+    });
+    return;
   }
+  _updateCheckManual = true;
+  _autoUpdater.checkForUpdates().catch(() => {
+    _updateCheckManual = false;
+  });
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -145,6 +186,11 @@ function _buildAppMenu() {
     {
       label: "Help",
       submenu: [
+        {
+          label: "Check for Updates…",
+          click: _checkForUpdatesManually,
+        },
+        { type: "separator" },
         {
           label: "GitHub Repository",
           click: () => shell.openExternal("https://github.com/Ghost-Network666/Morpheus"),
@@ -332,6 +378,7 @@ function _refreshTrayMenu() {
       enabled: !!activeConn,
     },
     { type: "separator" },
+    { label: "Check for Updates…", click: _checkForUpdatesManually },
     { label: `v${VERSION}`, enabled: false },
     { label: "Quit Morpheus", click: _quit },
   ]));
@@ -408,6 +455,8 @@ ipcMain.handle("get-connections", () => ({
 ipcMain.handle("get-version", () => VERSION);
 
 ipcMain.handle("get-api-base", () => apiBase);
+
+ipcMain.on("check-for-updates", () => _checkForUpdatesManually());
 
 ipcMain.handle("remote-install", (event, { host, port, username, password, authType, keyPath, passphrase }) => {
   const { remoteInstall } = require("./remote-install");
