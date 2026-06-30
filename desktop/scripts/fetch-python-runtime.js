@@ -68,7 +68,7 @@ async function main() {
   }
 
   console.log("[python-runtime] Installing backend dependencies into runtime...");
-  execFileSync(pythonBin, ["-m", "pip", "install", "--no-cache-dir", "-r", REQUIREMENTS], { stdio: "inherit" });
+  execFileSync(pythonBin, ["-m", "pip", "install", "--no-cache-dir", "--prefer-binary", "-r", REQUIREMENTS], { stdio: "inherit" });
 
   console.log("[python-runtime] Stripping __pycache__...");
   stripPycache(OUT_DIR);
