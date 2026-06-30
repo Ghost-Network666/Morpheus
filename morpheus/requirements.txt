@@ -76,6 +76,6 @@ httpx==0.28.1
 # Transitive security pins
 h11>=0.16.0
 urllib3>=2.2.0
-zipp>=3.19.1
+zipp>=4.1.0
 requests>=2.32.2
 idna>=3.15
