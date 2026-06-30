@@ -57,6 +57,14 @@ jobs:
         working-directory: desktop
         run: npm ci
 
+      - name: Install renderer dependencies
+        working-directory: desktop/app
+        run: npm ci
+
+      - name: Build renderer
+        working-directory: desktop/app
+        run: npm run build
+
       - name: Build macOS (x64)
         working-directory: desktop
         env:
@@ -103,6 +111,14 @@ jobs:
       - name: Install desktop dependencies
         working-directory: desktop
         run: npm ci
+
+      - name: Install renderer dependencies
+        working-directory: desktop/app
+        run: npm ci
+
+      - name: Build renderer
+        working-directory: desktop/app
+        run: npm run build
 
       - name: Build Windows (x64)
         working-directory: desktop

@@ -31,4 +31,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onRemoteInstallProgress:(cb)    => ipcRenderer.on("remote-install-progress", (_e, msg) => cb(msg)),
   listSshKeys:             ()    => ipcRenderer.invoke("list-ssh-keys"),
   browseSshKey:            ()    => ipcRenderer.invoke("browse-ssh-key"),
+
+  // ── Main app (bundled native UI) ─────────────────────────────────────────────
+  getApiBase: () => ipcRenderer.invoke("get-api-base"),
 });

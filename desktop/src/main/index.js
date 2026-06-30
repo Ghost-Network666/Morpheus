@@ -18,6 +18,7 @@ let connectWindow = null;
 let loadingWindow = null;
 let tray          = null;
 let activeConn    = null;
+let apiBase       = null;
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
 function _initUpdater() {
@@ -221,6 +222,8 @@ function _openLoading() {
 
 function _openMain(url) {
   _closeWindow("loading");
+  apiBase = url.replace(/\/$/, "");
+
   mainWindow = new BrowserWindow({
     width: 1280, height: 820,
     minWidth: 900, minHeight: 600,
@@ -234,7 +237,7 @@ function _openMain(url) {
     },
   });
 
-  mainWindow.loadURL(url);
+  mainWindow.loadFile(path.join(__dirname, "../../app/dist/index.html"));
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     _refreshTrayMenu();
@@ -408,6 +411,8 @@ ipcMain.handle("get-connections", () => ({
 }));
 
 ipcMain.handle("get-version", () => VERSION);
+
+ipcMain.handle("get-api-base", () => apiBase);
 
 ipcMain.handle("remote-install", (event, { host, port, username, password, authType, keyPath, passphrase }) => {
   const { remoteInstall } = require("./remote-install");
