@@ -1,0 +1,45 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Node — Electron main process
+  - package-ecosystem: "npm"
+    directory: "/desktop"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "javascript"
+    ignore:
+      # electron major version bumps require manual testing
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+
+  # Node — React renderer
+  - package-ecosystem: "npm"
+    directory: "/desktop/app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "javascript"
+
+  # Python — backend
+  - package-ecosystem: "pip"
+    directory: "/morpheus"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+      - "python"
