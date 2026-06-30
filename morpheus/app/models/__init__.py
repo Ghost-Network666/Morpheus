@@ -8,10 +8,11 @@ from app.models.vault import VaultItem
 from app.models.settings import UserSetting
 from app.models.system_setting import SystemSetting
 from app.models.obsidian import ObsidianNote
+from app.models.document import Document
 
 all_models = [
     User, ChatSession, ChatMessage, Note, Task, CalendarEvent,
     EmailAccount, EmailMessage, SSHProfile,
     MemoryVector, Skill, VaultItem, UserSetting, SystemSetting,
-    ObsidianNote,
+    ObsidianNote, Document,
 ]

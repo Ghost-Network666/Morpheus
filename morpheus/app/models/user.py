@@ -21,3 +21,4 @@ class User(Base):
     skills = relationship("Skill", back_populates="user", cascade="all, delete-orphan")
     vault_items = relationship("VaultItem", back_populates="user", cascade="all, delete-orphan")
     settings = relationship("UserSetting", back_populates="user", cascade="all, delete-orphan")
+    documents = relationship("Document", back_populates="user", cascade="all, delete-orphan")
