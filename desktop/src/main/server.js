@@ -11,9 +11,6 @@ const POLL_INTERVAL_MS = 500;
 let serverProc = null;
 let _state = { status: "idle", pid: null };
 
-function getServerState() { return _state; }
-function getServerUrl() { return `http://127.0.0.1:${PORT}`; }
-
 // ── Entry point ───────────────────────────────────────────────────────────────
 async function startServer(onProgress) {
   const appDir  = _appDir();
@@ -184,4 +181,4 @@ function _run(cmd, args) {
 
 function _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-module.exports = { startServer, stopServer, getServerUrl, getServerState };
+module.exports = { startServer, stopServer };

@@ -52,13 +52,6 @@ const API = {
     }
   },
 
-  // Auth
-  auth: {
-    login: (u, p, t) => API.post("/api/auth/login", { username: u, password: p, totp_code: t }),
-    logout: () => API.post("/api/auth/logout"),
-    me: () => API.get("/api/auth/me"),
-  },
-
   // System
   system: {
     info: () => API.get("/api/system/info"),
@@ -185,12 +178,6 @@ const API = {
     delete: (key) => API.delete(`/api/connections/vault/${encodeURIComponent(key)}`),
   },
 
-  // API tokens
-  tokens: {
-    list: () => API.get("/api/auth/tokens"),
-    create: (b) => API.post("/api/auth/tokens", b),
-    revoke: (id) => API.delete(`/api/auth/tokens/${id}`),
-  },
 };
 
 export default API;

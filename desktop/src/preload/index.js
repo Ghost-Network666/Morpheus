@@ -9,15 +9,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   onConnectionsData: (cb) => ipcRenderer.on("connections-data", (_e, data) => cb(data)),
   connectLocal:      () => ipcRenderer.send("connect-local"),
   connectRemote:     (name, url) => ipcRenderer.send("connect-remote", { name, url }),
-  switchConnection:  (id) => ipcRenderer.send("switch-connection", id),
   deleteConnection:  (id) => ipcRenderer.send("delete-connection", id),
   testRemoteUrl:     (url) => ipcRenderer.invoke("test-remote-url", url),
   getConnections:    () => ipcRenderer.invoke("get-connections"),
 
-  // ── Loading / error screen ─────────────────────────────────────────────────
+  // ── Loading screen ──────────────────────────────────────────────────────────
   onSetupProgress: (cb) => ipcRenderer.on("setup-progress", (_e, msg) => cb(msg)),
   onSetupError:    (cb) => ipcRenderer.on("setup-error",    (_e, msg) => cb(msg)),
-  onErrorMessage:  (cb) => ipcRenderer.on("error-message",  (_e, msg) => cb(msg)),
   retrySetup:      () => ipcRenderer.send("retry-setup"),
 
   // ── Global / tray ─────────────────────────────────────────────────────────

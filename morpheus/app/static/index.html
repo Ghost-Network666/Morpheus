@@ -13,29 +13,6 @@
 <!-- Animated background canvas -->
 <canvas id="bg-canvas"></canvas>
 
-<!-- Login Overlay -->
-<div id="login-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;align-items:center;justify-content:center;">
-  <div style="width:360px">
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;color:#fff">M</div>
-      <h1 style="font-size:24px">Morpheus</h1>
-      <p style="color:var(--text2);margin-top:4px">Sign in to continue</p>
-    </div>
-    <form id="login-form" class="card" style="display:flex;flex-direction:column;gap:14px">
-      <div class="form-group">
-        <label class="form-label">Username</label>
-        <input id="login-username" type="text" placeholder="admin" autocomplete="username">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input id="login-password" type="password" autocomplete="current-password">
-      </div>
-      <div id="login-error" style="color:var(--red);font-size:13px;min-height:16px"></div>
-      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center">Sign In</button>
-    </form>
-  </div>
-</div>
-
 <!-- Main App -->
 <div id="app">
 
@@ -159,9 +136,6 @@
       <div class="header-spacer"></div>
       <a id="tailscale-url" href="#" target="_blank" class="text-sm text-muted" style="display:none"></a>
       <div id="sync-indicator" class="sync-indicator" title="Connecting to sync…"></div>
-      <button id="logout-btn" class="btn-icon" title="Logout">
-        <svg viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
-      </button>
     </div>
 
     <!-- Pages -->

@@ -4,7 +4,6 @@ import { initBackground } from "./modules/background.js";
 // ── State ─────────────────────────────────────────────────────────────────────
 let _currentPage = null;
 let _sysInfo = null;
-let _user = null;
 const _initializedPages = new Set();
 
 // ── Exports ───────────────────────────────────────────────────────────────────
@@ -157,43 +156,6 @@ async function initPage(page) {
   }
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function checkAuth() {
-  try {
-    _user = await API.auth.me();
-    document.getElementById("login-overlay")?.remove();
-    return true;
-  } catch {
-    if (_sysInfo?.auth_enabled) {
-      showLoginOverlay();
-      return false;
-    }
-    // Auth disabled, create guest session
-    return true;
-  }
-}
-
-function showLoginOverlay() {
-  const overlay = document.getElementById("login-overlay");
-  if (!overlay) return;
-  overlay.style.display = "flex";
-
-  document.getElementById("login-form")?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const username = document.getElementById("login-username")?.value;
-    const password = document.getElementById("login-password")?.value;
-    try {
-      await API.auth.login(username, password);
-      _user = await API.auth.me();
-      overlay.style.display = "none";
-      init();
-    } catch (err) {
-      document.getElementById("login-error")?.textContent && (document.getElementById("login-error").textContent = err.message);
-      toast(err.message, "error");
-    }
-  });
-}
-
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
   // Load system info
@@ -230,10 +192,6 @@ async function init() {
   // Init animated background
   initBackground();
 
-  // Check auth
-  const authed = await checkAuth();
-  if (!authed) return;
-
   // Show setup wizard on first run
   await _checkSetupWizard();
 
@@ -251,13 +209,6 @@ async function init() {
       if (e.target === overlay) overlay.classList.remove("open");
     });
   });
-
-  // Logout
-  document.getElementById("logout-btn")?.addEventListener("click", async () => {
-    await API.auth.logout();
-    location.reload();
-  });
-
 
   // Route from hash or default to chat
   const hash = location.hash.replace("#/", "") || "chat";

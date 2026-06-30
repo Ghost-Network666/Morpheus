@@ -357,11 +357,6 @@ ipcMain.on("connect-remote", (_e, { name, url }) => {
   _connect(conn);
 });
 
-ipcMain.on("switch-connection", (_e, id) => {
-  const conn = getConnections().find(c => c.id === id);
-  if (conn) _connect(conn);
-});
-
 ipcMain.on("delete-connection", (_e, id) => {
   deleteConnection(id);
   if (connectWindow && !connectWindow.isDestroyed()) {
