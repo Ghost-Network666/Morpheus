@@ -97,7 +97,8 @@ mac:
 dmg:
   title: "Morpheus ${version}"
   artifactName: morpheus-${arch}.${ext}
-  # Minimal config for CI stability - avoids .background/background.tiff mount errors on GitHub macOS runners
+  background: null
+  # Minimal for CI to avoid .background/background.tiff FileNotFound on GitHub macOS
 
 # ── Linux ─────────────────────────────────────────────────────────────────
 linux:
