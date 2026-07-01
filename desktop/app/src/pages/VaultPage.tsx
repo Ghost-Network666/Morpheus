@@ -1,75 +1,65 @@
 import { useEffect, useState } from "react";
-import { Shield, Plus, Eye, EyeOff, Trash2, Copy, Check } from "lucide-react";
+import { Shield, Plus, Eye, EyeOff, Trash2, Copy, Check, Loader } from "lucide-react";
 import { api } from "../lib/api";
-import { getApiBase } from "../lib/connection";
-
-interface VaultEntry {
-  id: number;
-  label: string;
-  value: string;
-  created_at: string;
-}
+import type { VaultEntry } from "../types";
 
 export function VaultPage() {
-  const [entries, setEntries] = useState<VaultEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ label: "", value: "" });
-  const [revealed, setRevealed] = useState<Set<number>>(new Set());
-  const [copied, setCopied] = useState<number | null>(null);
+  const [entries, setEntries]     = useState<VaultEntry[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState<string | null>(null);
+  const [showForm, setShowForm]   = useState(false);
+  const [form, setForm]           = useState({ key: "", value: "", category: "general" });
+  const [revealed, setRevealed]   = useState<Record<string, string>>({});
+  const [revealing, setRevealing] = useState<Set<string>>(new Set());
+  const [copied, setCopied]       = useState<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
   async function load() {
     try {
       setLoading(true);
-      const base = await getApiBase();
-      const res = await fetch(`${base}/api/vault`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      setEntries(await res.json());
+      setEntries(await api.listVault());
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }
 
   async function addEntry(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.label || !form.value) return;
+    if (!form.key || !form.value) return;
     try {
-      const base = await getApiBase();
-      const res = await fetch(`${base}/api/vault`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const entry = await res.json();
-      setEntries((prev) => [entry, ...prev]);
-      setForm({ label: "", value: "" });
+      await api.setVaultItem(form.key, form.value, form.category);
+      setForm({ key: "", value: "", category: "general" });
       setShowForm(false);
+      await load();
     } catch (e) { setError(String(e)); }
   }
 
-  async function deleteEntry(id: number) {
+  async function deleteEntry(key: string) {
     try {
-      const base = await getApiBase();
-      await fetch(`${base}/api/vault/${id}`, { method: "DELETE" });
-      setEntries((prev) => prev.filter((e) => e.id !== id));
+      await api.deleteVaultItem(key);
+      setEntries((prev) => prev.filter((e) => e.key !== key));
+      setRevealed((prev) => { const next = { ...prev }; delete next[key]; return next; });
     } catch (e) { setError(String(e)); }
   }
 
-  function toggleReveal(id: number) {
-    setRevealed((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  async function toggleReveal(key: string) {
+    if (revealed[key]) {
+      setRevealed((prev) => { const next = { ...prev }; delete next[key]; return next; });
+      return;
+    }
+    try {
+      setRevealing((prev) => new Set(prev).add(key));
+      const { value } = await api.getVaultValue(key);
+      setRevealed((prev) => ({ ...prev, [key]: value }));
+    } catch (e) { setError(String(e)); }
+    finally { setRevealing((prev) => { const next = new Set(prev); next.delete(key); return next; }); }
   }
 
-  async function copyEntry(entry: VaultEntry) {
+  async function copyEntry(key: string) {
     try {
-      await navigator.clipboard.writeText(entry.value);
-      setCopied(entry.id);
+      const value = revealed[key] ?? (await api.getVaultValue(key)).value;
+      await navigator.clipboard.writeText(value);
+      setCopied(key);
       setTimeout(() => setCopied(null), 1500);
     } catch { /* ignore */ }
   }
@@ -89,26 +79,40 @@ export function VaultPage() {
       {error && <div className="border-b border-border bg-red-950/30 px-6 py-2 text-xs text-red-300">{error}</div>}
 
       {showForm && (
-        <form onSubmit={addEntry} className="flex items-end gap-3 border-b border-border bg-panel/30 px-6 py-4">
-          <div className="flex-1">
-            <label className="text-xs text-muted mb-1 block">Label</label>
-            <input
-              required value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder="e.g. OPENAI_KEY"
-              className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
-            />
-          </div>
-          <div className="flex-1">
-            <label className="text-xs text-muted mb-1 block">Value</label>
-            <input
-              required type="password" value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
-              placeholder="Secret value"
-              className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
-            />
-          </div>
-          <div className="flex gap-2 pb-0.5">
-            <button type="submit" className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90">Save</button>
-            <button type="button" onClick={() => setShowForm(false)} className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:text-text">Cancel</button>
+        <form onSubmit={addEntry} className="border-b border-border bg-panel/30 px-6 py-4">
+          <div className="grid grid-cols-2 gap-3 max-w-xl">
+            <div>
+              <label className="text-xs text-muted mb-1 block">Key</label>
+              <input
+                required value={form.key} onChange={(e) => setForm((f) => ({ ...f, key: e.target.value }))}
+                placeholder="e.g. OPENAI_API_KEY"
+                className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted mb-1 block">Category</label>
+              <select
+                value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
+              >
+                <option value="general">General</option>
+                <option value="api_key">API Key</option>
+                <option value="token">Token</option>
+                <option value="password">Password</option>
+              </select>
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-muted mb-1 block">Value</label>
+              <input
+                required type="password" value={form.value} onChange={(e) => setForm((f) => ({ ...f, value: e.target.value }))}
+                placeholder="Secret value"
+                className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent"
+              />
+            </div>
+            <div className="col-span-2 flex gap-2">
+              <button type="submit" className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90">Save</button>
+              <button type="button" onClick={() => setShowForm(false)} className="rounded border border-border px-3 py-1.5 text-xs text-muted hover:text-text">Cancel</button>
+            </div>
           </div>
         </form>
       )}
@@ -124,25 +128,27 @@ export function VaultPage() {
         )}
         <div className="flex flex-col gap-1.5 max-w-2xl">
           {entries.map((entry) => {
-            const show = revealed.has(entry.id);
-            const wasCopied = copied === entry.id;
+            const value = revealed[entry.key];
+            const isRevealing = revealing.has(entry.key);
+            const wasCopied = copied === entry.key;
             return (
-              <div key={entry.id} className="group flex items-center gap-3 rounded-lg border border-border bg-panel/40 px-4 py-3">
+              <div key={entry.key} className="group flex items-center gap-3 rounded-lg border border-border bg-panel/40 px-4 py-3">
                 <Shield size={14} className="shrink-0 text-accent/60" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-text">{entry.label}</p>
-                  <p className="text-xs font-mono text-muted/70 mt-0.5">
-                    {show ? entry.value : "••••••••••••"}
-                  </p>
+                  <p className="text-xs font-medium text-text font-mono">{entry.key}</p>
+                  <p className="text-xs text-muted/50 mt-0.5">{entry.category}</p>
+                  {value && (
+                    <p className="text-xs font-mono text-muted/70 mt-1 break-all">{value}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={() => toggleReveal(entry.id)} className="text-muted hover:text-text transition-colors">
-                    {show ? <EyeOff size={13} /> : <Eye size={13} />}
+                  <button onClick={() => toggleReveal(entry.key)} disabled={isRevealing} className="text-muted hover:text-text transition-colors disabled:opacity-50">
+                    {isRevealing ? <Loader size={13} className="animate-spin" /> : value ? <EyeOff size={13} /> : <Eye size={13} />}
                   </button>
-                  <button onClick={() => copyEntry(entry)} className="text-muted hover:text-text transition-colors">
+                  <button onClick={() => copyEntry(entry.key)} className="text-muted hover:text-text transition-colors">
                     {wasCopied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
                   </button>
-                  <button onClick={() => deleteEntry(entry.id)} className="hidden group-hover:flex text-muted hover:text-red-400 transition-colors">
+                  <button onClick={() => deleteEntry(entry.key)} className="hidden group-hover:flex text-muted hover:text-red-400 transition-colors">
                     <Trash2 size={13} />
                   </button>
                 </div>

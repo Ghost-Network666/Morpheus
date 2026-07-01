@@ -26,7 +26,7 @@ function TaskRow({
 }: RowComponentProps<TaskRowData>) {
   const task = tasks[index];
   if (!task) return null;
-  const done = task.status === "done";
+  const done = task.completed === true;
 
   return (
     <div {...ariaAttributes} style={style} className="px-6 py-1">
@@ -100,9 +100,8 @@ export function TasksPage() {
   }
 
   const handleToggle = useCallback(async (task: Task) => {
-    const next = task.status === "done" ? "pending" : "done";
     try {
-      const updated = await api.updateTask(task.id, { status: next as Task["status"] });
+      const updated = await api.updateTask(task.id, { completed: !task.completed });
       setTasks((prev) => prev.map((t) => t.id === task.id ? updated : t));
     } catch (e) { setError(String(e)); }
   }, []);
@@ -122,8 +121,8 @@ export function TasksPage() {
   }, []);
 
   const filtered = tasks.filter((t) => {
-    if (filter === "active") return t.status !== "done" && t.status !== "cancelled";
-    if (filter === "done")   return t.status === "done";
+    if (filter === "active") return !t.completed;
+    if (filter === "done")   return t.completed;
     return true;
   });
 

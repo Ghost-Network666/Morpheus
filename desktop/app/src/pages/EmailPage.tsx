@@ -33,6 +33,7 @@ export function EmailPage() {
     try {
       setLoading(true);
       setError(null);
+      if (accountId == null) return;
       setMessages(await api.listEmails(accountId));
     } catch (e) {
       setError(String(e));
@@ -88,18 +89,18 @@ export function EmailPage() {
                 onClick={() => setSelected(msg)}
                 className={`cursor-pointer border-b border-border/50 px-3 py-2.5 transition-colors hover:bg-white/5 ${
                   selected?.id === msg.id ? "bg-accent/10" : ""
-                } ${!msg.read ? "border-l-2 border-l-accent" : ""}`}
+                } ${!msg.is_read ? "border-l-2 border-l-accent" : ""}`}
               >
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <span className={`truncate text-xs ${!msg.read ? "font-semibold text-text" : "text-muted"}`}>
+                  <span className={`truncate text-xs ${!msg.is_read ? "font-semibold text-text" : "text-muted"}`}>
                     {msg.from_addr}
                   </span>
                   <span className="shrink-0 text-[10px] text-muted/60">
                     {new Date(msg.date).toLocaleDateString()}
                   </span>
                 </div>
-                <p className={`truncate text-xs ${!msg.read ? "text-text" : "text-muted/80"}`}>{msg.subject}</p>
-                <p className="truncate text-[11px] text-muted/60 mt-0.5">{msg.snippet}</p>
+                <p className={`truncate text-xs ${!msg.is_read ? "text-text" : "text-muted/80"}`}>{msg.subject}</p>
+                <p className="truncate text-[11px] text-muted/60 mt-0.5">{msg.summary_ai}</p>
               </div>
             ))
           )}
@@ -123,7 +124,7 @@ export function EmailPage() {
             </div>
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <p className="text-sm text-text/80 whitespace-pre-wrap leading-relaxed">
-                {selected.snippet}
+                {selected.summary_ai}
               </p>
             </div>
           </>

@@ -8,7 +8,7 @@ export function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", start: "", end: "", all_day: false, description: "" });
+  const [form, setForm] = useState({ summary: "", start: "", end: "", all_day: false, description: "" });
 
   useEffect(() => { load(); }, []);
 
@@ -20,12 +20,12 @@ export function CalendarPage() {
 
   async function addEvent(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.title || !form.start) return;
+    if (!form.summary || !form.start) return;
     try {
       const ev = await api.createEvent({ ...form, end: form.end || undefined });
       setEvents((prev) => [...prev, ev].sort((a, b) => a.start.localeCompare(b.start)));
       setShowForm(false);
-      setForm({ title: "", start: "", end: "", all_day: false, description: "" });
+      setForm({ summary: "", start: "", end: "", all_day: false, description: "" });
     } catch (e) { setError(String(e)); }
   }
 
@@ -59,7 +59,7 @@ export function CalendarPage() {
           <div className="grid grid-cols-2 gap-3 max-w-xl">
             <div className="col-span-2">
               <label className="text-xs text-muted mb-1 block">Title</label>
-              <input required value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              <input required value={form.summary} onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
                 className="w-full rounded border border-border bg-bg px-3 py-1.5 text-xs text-text outline-none focus:border-accent" />
             </div>
             <div>
@@ -111,7 +111,7 @@ function EventSection({ title, events, onDelete, muted }: {
         {events.map((ev) => (
           <div key={ev.id} className="group flex items-start gap-3 rounded-lg border border-border bg-panel/40 px-4 py-3">
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-text">{ev.title}</p>
+              <p className="text-xs font-medium text-text">{ev.summary}</p>
               <p className="text-xs text-muted mt-0.5">
                 {new Date(ev.start).toLocaleString(undefined, {
                   dateStyle: "medium", timeStyle: ev.all_day ? undefined : "short",

@@ -3,7 +3,7 @@ import { Server, Plus, Trash2, Terminal } from "lucide-react";
 import { api } from "../lib/api";
 import { getApiBase } from "../lib/connection";
 
-interface SshConnection {
+interface SshProfile {
   id: number;
   label: string;
   host: string;
@@ -12,7 +12,7 @@ interface SshConnection {
 }
 
 export function SshPage() {
-  const [connections, setConnections] = useState<SshConnection[]>([]);
+  const [profiles, setProfiles] = useState<SshProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -24,52 +24,40 @@ export function SshPage() {
   async function load() {
     try {
       setLoading(true);
-      const base = await getApiBase();
-      const res = await fetch(`${base}/api/ssh/connections`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      setConnections(await res.json());
+      setProfiles(await api.listSshProfiles());
     } catch (e) { setError(String(e)); }
     finally { setLoading(false); }
   }
 
-  async function addConnection(e: React.FormEvent) {
+  async function addProfile(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const base = await getApiBase();
-      const res = await fetch(`${base}/api/ssh/connections`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, port: Number(form.port) }),
+      const profile = await api.createSshProfile({
+        ...form,
+        port: Number(form.port),
       });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const conn = await res.json();
-      setConnections((prev) => [...prev, conn]);
+      setProfiles((prev) => [...prev, profile]);
       setShowForm(false);
       setForm({ label: "", host: "", port: "22", username: "root", password: "" });
     } catch (e) { setError(String(e)); }
   }
 
-  async function connectSsh(conn: SshConnection) {
+  async function connectProfile(profile: SshProfile) {
     try {
-      setConnecting(conn.id);
+      setConnecting(profile.id);
       setError(null);
+      const { session_id } = await api.connectSshProfile(profile.id);
       const base = await getApiBase();
-      const res = await fetch(`${base}/api/ssh/connect/${conn.id}`, { method: "POST" });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const { session_id } = await res.json();
-      // Open terminal with this SSH session
-      // For now, navigate to terminal with the session
       const wsUrl = base.replace(/^http/, "ws") + `/api/terminal/ws/${session_id}`;
-      window.dispatchEvent(new CustomEvent("open-ssh-terminal", { detail: { session_id, wsUrl, label: conn.label } }));
+      window.dispatchEvent(new CustomEvent("open-ssh-terminal", { detail: { session_id, wsUrl, label: profile.label } }));
     } catch (e) { setError(String(e)); }
     finally { setConnecting(null); }
   }
 
-  async function deleteConn(id: number) {
+  async function deleteProfile(id: number) {
     try {
-      const base = await getApiBase();
-      await fetch(`${base}/api/ssh/connections/${id}`, { method: "DELETE" });
-      setConnections((prev) => prev.filter((c) => c.id !== id));
+      await api.deleteSshProfile(id);
+      setProfiles((prev) => prev.filter((p) => p.id !== id));
     } catch (e) { setError(String(e)); }
   }
 
@@ -88,7 +76,7 @@ export function SshPage() {
       {error && <div className="border-b border-border bg-red-950/30 px-6 py-2 text-xs text-red-300">{error}</div>}
 
       {showForm && (
-        <form onSubmit={addConnection} className="border-b border-border bg-panel/30 px-6 py-4">
+        <form onSubmit={addProfile} className="border-b border-border bg-panel/30 px-6 py-4">
           <div className="grid grid-cols-2 gap-3 max-w-xl">
             {[
               { key: "label", label: "Label", placeholder: "My Server" },
@@ -126,7 +114,7 @@ export function SshPage() {
 
       <div className="flex-1 overflow-y-auto px-6 py-4">
         {loading && <p className="text-xs text-muted">Loading…</p>}
-        {!loading && connections.length === 0 && (
+        {!loading && profiles.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-12 text-muted">
             <Server size={40} className="opacity-20" />
             <p className="text-sm">No SSH connections saved</p>
@@ -134,23 +122,23 @@ export function SshPage() {
           </div>
         )}
         <div className="grid grid-cols-1 gap-2 max-w-xl">
-          {connections.map((conn) => (
-            <div key={conn.id} className="group flex items-center justify-between rounded-lg border border-border bg-panel/40 px-4 py-3">
+          {profiles.map((profile) => (
+            <div key={profile.id} className="group flex items-center justify-between rounded-lg border border-border bg-panel/40 px-4 py-3">
               <div>
-                <p className="text-xs font-medium text-text">{conn.label}</p>
-                <p className="text-xs text-muted/70 font-mono">{conn.username}@{conn.host}:{conn.port}</p>
+                <p className="text-xs font-medium text-text">{profile.label}</p>
+                <p className="text-xs text-muted/70 font-mono">{profile.username}@{profile.host}:{profile.port}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => connectSsh(conn)}
-                  disabled={connecting === conn.id}
+                  onClick={() => connectProfile(profile)}
+                  disabled={connecting === profile.id}
                   className="flex items-center gap-1.5 rounded px-2.5 py-1 text-xs text-accent border border-accent/20 hover:bg-accent/10 disabled:opacity-50"
                 >
                   <Terminal size={12} />
-                  {connecting === conn.id ? "Connecting…" : "Connect"}
+                  {connecting === profile.id ? "Connecting…" : "Connect"}
                 </button>
                 <button
-                  onClick={() => deleteConn(conn.id)}
+                  onClick={() => deleteProfile(profile.id)}
                   className="hidden group-hover:flex text-muted hover:text-red-400"
                 >
                   <Trash2 size={13} />

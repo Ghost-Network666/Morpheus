@@ -100,7 +100,7 @@ export function RagPage() {
     finally { setSearching(false); }
   }
 
-  const totalChunks = docs.reduce((sum, d) => sum + (d.chunk_count || 0), 0);
+  const totalChunks = docs.reduce((sum, d) => sum + (d.chunks || 0), 0);
   const selectedDoc = docs.find(d => d.id === selectedDocId);
 
   return (
@@ -168,7 +168,7 @@ export function RagPage() {
                 >
                   <div className="min-w-0 pr-2">
                     <div className="truncate font-medium text-text/90">{doc.filename}</div>
-                    <div className="text-[10px] text-muted/60 tabular-nums">{(doc.size/1024).toFixed(1)} KB • {doc.chunk_count ?? '?'} chunks</div>
+                    <div className="text-[10px] text-muted/60 tabular-nums">{(doc.size/1024).toFixed(1)} KB • {doc.chunks ?? '?'} chunks</div>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); deleteDoc(doc.id); }}

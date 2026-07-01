@@ -53,6 +53,7 @@ async function streamReq(
       try {
         const parsed = JSON.parse(payload);
         if (typeof parsed.content === "string") onChunk(parsed.content);
+        else if (typeof parsed.log === "string") onChunk(parsed.log);
       } catch { /* ignore */ }
     }
   }
@@ -115,14 +116,14 @@ export const api = {
   listTasks: () => req<Task[]>("/api/tasks"),
   createTask: (data: { title: string; priority?: string; description?: string; due_date?: string }) =>
     req<Task>("/api/tasks", { method: "POST", body: JSON.stringify(data) }),
-  updateTask: (id: number, data: Partial<Task>) =>
+  updateTask: (id: number, data: { completed?: boolean; priority?: string; title?: string; description?: string; due_date?: string }) =>
     req<Task>(`/api/tasks/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteTask: (id: number) =>
     req<{ ok: boolean }>(`/api/tasks/${id}`, { method: "DELETE" }),
 
   // ── Calendar ───────────────────────────────────────────────────────────────
   listEvents: () => req<CalendarEvent[]>("/api/calendar"),
-  createEvent: (data: Partial<CalendarEvent>) =>
+  createEvent: (data: { summary: string; start: string; end?: string; all_day?: boolean; description?: string; color?: string }) =>
     req<CalendarEvent>("/api/calendar", { method: "POST", body: JSON.stringify(data) }),
   deleteEvent: (id: number) =>
     req<{ ok: boolean }>(`/api/calendar/${id}`, { method: "DELETE" }),
@@ -163,7 +164,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ query, n_results: n_results ?? 5 }),
     }),
-  async uploadRagFile(file: File, onProgress?: (pct: number) => void): Promise<RAGDocument> {
+  async uploadRagFile(file: File): Promise<RAGDocument> {
     const base = await getApiBase();
     const form = new FormData();
     form.append("file", file);
@@ -175,30 +176,57 @@ export const api = {
     return res.json();
   },
 
+  // ── SSH ────────────────────────────────────────────────────────────────────
+  listSshProfiles: () => req<any[]>("/api/ssh/profiles"),
+  createSshProfile: (data: { label: string; host: string; port: number; username: string; password?: string }) =>
+    req<any>("/api/ssh/profiles", { method: "POST", body: JSON.stringify(data) }),
+  deleteSshProfile: (id: number) =>
+    req<{ ok: boolean }>(`/api/ssh/profiles/${id}`, { method: "DELETE" }),
+  connectSshProfile: (id: number) =>
+    req<{ session_id: string }>(`/api/ssh/profiles/${id}/connect`, { method: "POST" }),
+
   // ── Email ──────────────────────────────────────────────────────────────────
   listEmailAccounts: () => req<EmailAccount[]>("/api/email/accounts"),
-  listEmails: (accountId?: number, folder = "INBOX", limit = 50) =>
-    req<EmailMessage[]>(
-      `/api/email/messages?folder=${folder}&limit=${limit}` +
-        (accountId ? `&account_id=${accountId}` : ""),
-    ),
+  listEmails: (accountId: number, folder = "INBOX", limit = 50) =>
+    req<EmailMessage[]>(`/api/email/accounts/${accountId}/messages?folder=${folder}&limit=${limit}`),
 
   // ── Documents ──────────────────────────────────────────────────────────────
   listFiles: (path = "") =>
-    req<FSEntry[]>(`/api/documents/list?path=${encodeURIComponent(path)}`),
-  readFile: (path: string) =>
-    req<{ content: string; encoding: string }>(`/api/documents/read?path=${encodeURIComponent(path)}`),
+    req<FSEntry[]>(`/api/documents?path=${encodeURIComponent(path)}`),
+  async readFile(path: string): Promise<{ content: string }> {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/api/documents/file?path=${encodeURIComponent(path)}`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const content = await res.text();
+    return { content };
+  },
 
   // ── Obsidian ───────────────────────────────────────────────────────────────
   listObsidianFiles: (query = "") =>
-    req<ObsidianFile[]>(`/api/obsidian/files?query=${encodeURIComponent(query)}`),
-  readObsidianFile: (path: string) =>
-    req<{ content: string }>(`/api/obsidian/file?path=${encodeURIComponent(path)}`),
+    req<ObsidianFile[]>(`/api/obsidian/notes?q=${encodeURIComponent(query)}`),
+  readObsidianFile: async (path: string): Promise<{ content: string }> => {
+    const base = await getApiBase();
+    const res = await fetch(`${base}/api/obsidian/notes/${encodeURIComponent(path)}`);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.json();
+  },
+
+  // ── Vault ──────────────────────────────────────────────────────────────────
+  listVault: () => req<VaultEntry[]>("/api/connections/vault"),
+  getVaultValue: (key: string) =>
+    req<{ key: string; value: string }>(`/api/connections/vault/${encodeURIComponent(key)}`),
+  setVaultItem: (key: string, value: string, category = "general") =>
+    req<{ ok: boolean; key: string }>("/api/connections/vault", {
+      method: "POST",
+      body: JSON.stringify({ key, value, category }),
+    }),
+  deleteVaultItem: (key: string) =>
+    req<{ ok: boolean }>(`/api/connections/vault/${encodeURIComponent(key)}`, { method: "DELETE" }),
 
   // ── Cookbook (Ollama models) ────────────────────────────────────────────────
   listModels: () => req<{ models: OllamaModel[] }>("/api/cookbook/models"),
   pullModel: (name: string, onChunk: (text: string) => void) =>
-    streamReq("/api/cookbook/pull", { name }, onChunk),
+    streamReq("/api/cookbook/models/download", { name }, onChunk),
   deleteModel: (name: string) =>
     req<{ ok: boolean }>(`/api/cookbook/models/${encodeURIComponent(name)}`, { method: "DELETE" }),
 };
