@@ -101,6 +101,14 @@ export interface RAGSearchResult {
   score: number;
 }
 
+export interface RAGChunk {
+  id: string;
+  text: string;
+  chunk_index: number;
+  tokens: number;
+  source: string;
+}
+
 export interface EmailMessage {
   id: string;
   subject: string;
