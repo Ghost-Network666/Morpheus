@@ -26,7 +26,7 @@ export interface Note {
   id: number;
   title: string;
   content: string;
-  tags: string | null;
+  tags: string[];
   pinned: boolean;
   created_at: string;
   updated_at: string;
@@ -37,7 +37,7 @@ export interface Task {
   title: string;
   description: string | null;
   priority: "low" | "medium" | "high" | "critical";
-  status: "pending" | "in_progress" | "done" | "cancelled";
+  completed: boolean;
   due_date: string | null;
   created_at: string;
   updated_at: string;
@@ -45,7 +45,7 @@ export interface Task {
 
 export interface CalendarEvent {
   id: number;
-  title: string;
+  summary: string;
   start: string;
   end: string | null;
   all_day: boolean;
@@ -92,7 +92,7 @@ export interface RAGDocument {
   filename: string;
   size: number;
   uploaded_at: string;
-  chunk_count?: number;
+  chunks?: number;
 }
 
 export interface RAGSearchResult {
@@ -114,8 +114,8 @@ export interface EmailMessage {
   subject: string;
   from_addr: string;
   date: string;
-  snippet: string;
-  read: boolean;
+  summary_ai: string;
+  is_read: boolean;
 }
 
 export interface EmailAccount {
@@ -130,7 +130,6 @@ export interface FSEntry {
   path: string;
   is_dir: boolean;
   size: number;
-  modified: string;
 }
 
 export interface ObsidianFile {
@@ -142,9 +141,9 @@ export interface ObsidianFile {
 
 export interface VaultEntry {
   id: number;
-  label: string;
-  value: string;
-  created_at: string;
+  key: string;
+  category: string;
+  updated_at: string;
 }
 
 export interface OllamaModel {
