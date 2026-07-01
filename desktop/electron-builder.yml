@@ -105,6 +105,16 @@ dmg:
       type: link
       path: /Applications
 
+# ── Linux ─────────────────────────────────────────────────────────────────
+linux:
+  icon: assets/icon.png
+  category: Utility
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+
 # ── Publish to GitHub Releases ─────────────────────────────────────────────
 publish:
   provider: github

@@ -8,12 +8,16 @@ Chat with local or cloud AI, manage notes, tasks, and calendar, run a full termi
 
 ## Download
 
+> **Latest release: [v1.0.0](https://github.com/Ghost-Network666/Morpheus/releases/latest)**
+
 | Platform | Download |
 |---|---|
-| Windows (x64, installer) | ⬇ morpheus-setup.exe |
-| Windows (x64, portable) | ⬇ morpheus-portable.exe |
-| macOS (Apple Silicon) | ⬇ morpheus-arm64.dmg |
-| macOS (Intel x64) | ⬇ morpheus-x64.dmg |
+| Windows (x64, installer) | [morpheus-setup.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-setup.exe) |
+| Windows (x64, portable) | [morpheus-portable.exe](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-portable.exe) |
+| macOS (Apple Silicon) | [morpheus-arm64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-arm64.dmg) |
+| macOS (Intel x64) | [morpheus-x64.dmg](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-x64.dmg) |
+| Linux (AppImage, x64) | [morpheus-x64.AppImage](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-x64.AppImage) |
+| Linux (.deb, x64) | [morpheus-amd64.deb](https://github.com/Ghost-Network666/Morpheus/releases/latest/download/morpheus-amd64.deb) |
 
 ---
 

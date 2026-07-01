@@ -7,7 +7,7 @@
  * as desktop/python-runtime/, so installers are fully self-contained —
  * no system Python, pip, or venv is required on the user's machine.
  *
- * Usage: node fetch-python-runtime.js <mac-x64|mac-arm64|win-x64>
+ * Usage: node fetch-python-runtime.js <mac-x64|mac-arm64|win-x64|linux-x64>
  */
 const https = require("https");
 const fs = require("fs");
@@ -32,6 +32,11 @@ const RUNTIMES = {
     sha256: "7e0a8abfee952efc63dff290022a73f0185b586f522678ae7a757a56f23c289b",
     pythonBin: "python.exe",
   },
+  "linux-x64": {
+    url: "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/cpython-3.11.15%2B20260623-x86_64-unknown-linux-gnu-install_only.tar.gz",
+    sha256SumsUrl: "https://github.com/astral-sh/python-build-standalone/releases/download/20260623/SHA256SUMS",
+    pythonBin: "bin/python3",
+  },
 };
 
 const OUT_DIR = path.join(__dirname, "..", "python-runtime");
@@ -47,13 +52,25 @@ async function main() {
 
   const tmpTar = path.join(os.tmpdir(), `morpheus-python-runtime-${target}.tar.gz`);
 
+  // Resolve expected hash — either hardcoded or fetched from upstream SHA256SUMS
+  let expectedHash = runtime.sha256;
+  if (!expectedHash && runtime.sha256SumsUrl) {
+    console.log("[python-runtime] Fetching SHA256SUMS...");
+    const tarFilename = decodeURIComponent(runtime.url.split("/").pop());
+    const sumsText = await fetchText(runtime.sha256SumsUrl);
+    const line = sumsText.split("\n").find((l) => l.includes(tarFilename));
+    if (!line) throw new Error(`Could not find ${tarFilename} in SHA256SUMS`);
+    expectedHash = line.trim().split(/\s+/)[0];
+    console.log(`[python-runtime] Expected SHA256: ${expectedHash}`);
+  }
+
   console.log(`[python-runtime] Downloading runtime for ${target}...`);
   await download(runtime.url, tmpTar);
 
   console.log("[python-runtime] Verifying checksum...");
   const actual = await sha256File(tmpTar);
-  if (actual !== runtime.sha256) {
-    throw new Error(`Checksum mismatch for ${target}\n  expected: ${runtime.sha256}\n  actual:   ${actual}`);
+  if (actual !== expectedHash) {
+    throw new Error(`Checksum mismatch for ${target}\n  expected: ${expectedHash}\n  actual:   ${actual}`);
   }
 
   console.log("[python-runtime] Extracting...");
@@ -79,6 +96,24 @@ async function main() {
   stripPycache(OUT_DIR);
 
   console.log(`[python-runtime] Done. Runtime ready at ${OUT_DIR}`);
+}
+
+function fetchText(url, redirectsLeft = 5) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, { headers: { "User-Agent": "morpheus-build" } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          if (redirectsLeft <= 0) return reject(new Error("Too many redirects"));
+          return resolve(fetchText(res.headers.location, redirectsLeft - 1));
+        }
+        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+        let data = "";
+        res.on("data", (c) => (data += c));
+        res.on("end", () => resolve(data));
+        res.on("error", reject);
+      })
+      .on("error", reject);
+  });
 }
 
 function download(url, dest, redirectsLeft = 5) {
