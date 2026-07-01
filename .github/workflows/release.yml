@@ -19,7 +19,7 @@ permissions:
   contents: write
 
 jobs:
-  # ── Determine version & whether to publish ──────────────────────────────────
+  # ── Determine version, dry-run flag, and create the GitHub release ───────────
   prepare:
     runs-on: ubuntu-latest
     outputs:
@@ -27,11 +27,13 @@ jobs:
       dry_run: ${{ steps.check.outputs.dry_run }}
     steps:
       - uses: actions/checkout@v4
+
       - id: ver
         run: |
           VERSION=$(node -p "require('./desktop/package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Building v$VERSION"
+
       - id: check
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.dry_run }}" == "true" ]]; then
@@ -40,7 +42,24 @@ jobs:
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
 
-  # ── macOS (builds both x64 and arm64) ──────────────────────────────────────
+      # Delete any existing release + tag so we can republish with correct names.
+      # Safe to fail when the release does not exist yet.
+      - name: Create GitHub release
+        if: steps.check.outputs.dry_run == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          gh release delete "v${VERSION}" --yes --delete-tag \
+            --repo ${{ github.repository }} 2>/dev/null || true
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --notes "Desktop app — Windows (x64 installer + portable) and macOS (Intel x64 + Apple Silicon). Self-contained: bundles a Python runtime, no system Python required." \
+            --latest \
+            --target "$GITHUB_SHA" \
+            --repo ${{ github.repository }}
+
+  # ── macOS (x64 then arm64 on the same runner) ────────────────────────────────
   build-mac:
     needs: prepare
     runs-on: macos-latest
@@ -72,14 +91,8 @@ jobs:
       - name: Build macOS (x64)
         working-directory: desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: |
-          if [[ "${{ needs.prepare.outputs.dry_run }}" == "true" ]]; then
-            npx electron-builder --mac --x64 --publish never
-          else
-            npx electron-builder --mac --x64 --publish always
-          fi
+        run: npx electron-builder --mac --x64 --publish never
 
       - name: Fetch Python runtime (arm64)
         working-directory: desktop
@@ -88,14 +101,27 @@ jobs:
       - name: Build macOS (arm64)
         working-directory: desktop
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder --mac --arm64 --publish never
+
+      - name: Upload macOS release assets
+        if: needs.prepare.outputs.dry_run == 'false'
+        working-directory: desktop/dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ "${{ needs.prepare.outputs.dry_run }}" == "true" ]]; then
-            npx electron-builder --mac --arm64 --publish never
-          else
-            npx electron-builder --mac --arm64 --publish always
-          fi
+          VERSION="v${{ needs.prepare.outputs.version }}"
+          REPO="${{ github.repository }}"
+          FILES=()
+          for f in \
+            morpheus-x64.dmg   morpheus-x64.dmg.blockmap \
+            morpheus-arm64.dmg morpheus-arm64.dmg.blockmap \
+            morpheus-x64.zip   morpheus-x64.zip.blockmap \
+            morpheus-arm64.zip morpheus-arm64.zip.blockmap \
+            latest-mac.yml; do
+            [ -f "$f" ] && FILES+=("$f")
+          done
+          gh release upload "$VERSION" "${FILES[@]}" --clobber --repo "$REPO"
 
       - uses: actions/upload-artifact@v4
         if: needs.prepare.outputs.dry_run == 'true'
@@ -103,7 +129,7 @@ jobs:
           name: mac-artifacts
           path: desktop/dist/*.dmg
 
-  # ── Windows ─────────────────────────────────────────────────────────────────
+  # ── Windows ──────────────────────────────────────────────────────────────────
   build-win:
     needs: prepare
     runs-on: windows-latest
@@ -134,14 +160,25 @@ jobs:
 
       - name: Build Windows (x64)
         working-directory: desktop
+        run: npx electron-builder --win --x64 --publish never
+
+      - name: Upload Windows release assets
+        if: needs.prepare.outputs.dry_run == 'false'
+        working-directory: desktop/dist
+        shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ("${{ needs.prepare.outputs.dry_run }}" -eq "true") {
-            npx electron-builder --win --x64 --publish never
-          } else {
-            npx electron-builder --win --x64 --publish always
-          }
+          VERSION="v${{ needs.prepare.outputs.version }}"
+          REPO="${{ github.repository }}"
+          FILES=()
+          for f in \
+            morpheus-setup.exe    morpheus-setup.exe.blockmap \
+            morpheus-portable.exe \
+            latest.yml; do
+            [ -f "$f" ] && FILES+=("$f")
+          done
+          gh release upload "$VERSION" "${FILES[@]}" --clobber --repo "$REPO"
 
       - uses: actions/upload-artifact@v4
         if: needs.prepare.outputs.dry_run == 'true'

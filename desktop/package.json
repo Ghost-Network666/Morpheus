@@ -1,6 +1,6 @@
 {
   "name": "morpheus-desktop",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "Self-hosted AI workspace — desktop app",
   "main": "src/main/index.js",
   "author": {
