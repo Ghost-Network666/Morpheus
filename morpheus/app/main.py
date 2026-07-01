@@ -2,8 +2,7 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings, load_overrides
@@ -175,20 +174,7 @@ def create_app() -> FastAPI:
             },
         }
 
-    # Serve frontend static files
-    static_dir = os.path.join(os.path.dirname(__file__), "static")
-    if os.path.isdir(static_dir):
-        app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-        @app.get("/", include_in_schema=False)
-        @app.get("/{full_path:path}", include_in_schema=False)
-        async def serve_spa(full_path: str = ""):
-            if full_path.startswith("api/") or full_path.startswith("ws/"):
-                return JSONResponse({"error": "Not found"}, status_code=404)
-            index = os.path.join(static_dir, "index.html")
-            if os.path.isfile(index):
-                return FileResponse(index)
-            return JSONResponse({"error": "Frontend not found"}, status_code=404)
+    # NOTE: Web UI removed — backend exposes API endpoints only.
 
     return app
 
