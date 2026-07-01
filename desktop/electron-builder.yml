@@ -97,15 +97,7 @@ mac:
 dmg:
   title: "Morpheus ${version}"
   artifactName: morpheus-${arch}.${ext}
-  # Simplified for CI reliability (avoids hdiutil/dmgbuild background mount flakes on GitHub macOS runners)
-  background: null
-  contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
-      type: link
-      path: /Applications
+  # Minimal config for CI stability - avoids .background/background.tiff mount errors on GitHub macOS runners
 
 # ── Linux ─────────────────────────────────────────────────────────────────
 linux:
