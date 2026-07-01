@@ -2,7 +2,7 @@ import { getApiBase } from "./connection";
 import type {
   ChatSession, ChatMessage, SystemInfo,
   Note, Task, CalendarEvent, AppSettings,
-  RAGDocument, RAGSearchResult, EmailMessage, EmailAccount,
+  RAGDocument, RAGSearchResult, RAGChunk, EmailMessage, EmailAccount,
   FSEntry, ObsidianFile, VaultEntry, OllamaModel,
 } from "../types";
 
@@ -155,6 +155,9 @@ export const api = {
   listRagDocs: () => req<RAGDocument[]>("/api/rag/documents"),
   deleteRagDoc: (id: string) =>
     req<{ ok: boolean }>(`/api/rag/documents/${id}`, { method: "DELETE" }),
+  listRagChunks: (docId: string) => req<{ chunks: RAGChunk[] }>(`/api/rag/documents/${docId}/chunks`),
+  deleteRagChunk: (chunkId: string) =>
+    req<{ ok: boolean }>(`/api/rag/chunks/${chunkId}`, { method: "DELETE" }),
   ragSearch: (query: string, n_results?: number) =>
     req<{ results: RAGSearchResult[] }>("/api/rag/search", {
       method: "POST",
