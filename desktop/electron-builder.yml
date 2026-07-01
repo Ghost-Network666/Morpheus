@@ -31,6 +31,7 @@ extraResources:
       - "!.git/**"
       - "!dist/**"
       - "!*.egg-info/**"
+      - "!app/static/**" # <-- exclude the web UI from the extraResources bundle
   - from: python-runtime
     to: python-runtime
     filter:
@@ -46,7 +47,7 @@ extraResources:
 
 files:
   - src/**/*
-  - app/dist/**/*
+  - app/static/**/*
   - "!app/src/**"
   - "!app/node_modules/**"
   - "!app/package.json"
@@ -57,7 +58,7 @@ files:
   - "!app/tailwind.config.js"
   - "!app/index.html"
 
-# ── Windows ───────────────────────────────────────────────────────────────────
+# ── Windows ───────────────────────────────────────────────────────────
 win:
   icon: assets/icon.ico
   target:
@@ -81,7 +82,7 @@ nsis:
 portable:
   artifactName: morpheus-portable.${ext}
 
-# ── macOS ─────────────────────────────────────────────────────────────────────
+# ── macOS ────────────────────────────────────────────────────────────
 mac:
   icon: assets/icon.icns
   category: public.app-category.productivity
@@ -95,6 +96,7 @@ mac:
 
 dmg:
   title: "Morpheus ${version}"
+  artifactName: morpheus-${arch}.${ext}
   contents:
     - x: 130
       y: 220
@@ -103,7 +105,7 @@ dmg:
       type: link
       path: /Applications
 
-# ── Publish to GitHub Releases ────────────────────────────────────────────────
+# ── Publish to GitHub Releases ─────────────────────────────────────────────
 publish:
   provider: github
   owner: Ghost-Network666
