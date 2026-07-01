@@ -35,4 +35,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
 
   // ── Main app (bundled native UI) ─────────────────────────────────────────────
   getApiBase: () => ipcRenderer.invoke("get-api-base"),
+
+  // ── Setup wizard ──────────────────────────────────────────────────────────────
+  checkOllama:        ()           => ipcRenderer.invoke("check-ollama"),
+  installOllama:      ()           => ipcRenderer.invoke("install-ollama"),
+  pullOllamaModel:    (model)      => ipcRenderer.invoke("pull-ollama-model", model),
+  onOllamaProgress:   (cb)         => {
+    const listener = (_e, data) => cb(data);
+    ipcRenderer.on("ollama-progress", listener);
+    return () => ipcRenderer.removeListener("ollama-progress", listener);
+  },
+  wizardConnectLocal:  (settings)      => ipcRenderer.send("wizard-connect-local",  settings),
+  wizardConnectRemote: (name, url)     => ipcRenderer.send("wizard-connect-remote", { name, url }),
 });

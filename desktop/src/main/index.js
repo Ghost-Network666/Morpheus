@@ -8,6 +8,7 @@ const {
   LOCAL_CONNECTION,
 } = require("./connections");
 const { startServer, stopServer } = require("./server");
+const { checkOllamaStatus, installOllama, pullModel } = require("./ollama-installer");
 
 const IS_DEV = process.argv.includes("--dev");
 const VERSION = app.getVersion();
@@ -16,9 +17,11 @@ let mainWindow    = null;
 let introWindow   = null;
 let connectWindow = null;
 let loadingWindow = null;
+let wizardWindow  = null;
 let tray          = null;
 let activeConn    = null;
 let apiBase       = null;
+let _pendingWizardSettings = null;
 
 // ── Auto-updater ──────────────────────────────────────────────────────────
 let _autoUpdater = null;
@@ -96,7 +99,7 @@ app.whenReady().then(async () => {
   _initUpdater();
 
   if (isFirstLaunch()) {
-    _openIntro();
+    _openWizard();
   } else {
     const last = getLastConnection();
     if (last) {
@@ -228,6 +231,23 @@ function _openIntro() {
   if (IS_DEV) introWindow.webContents.openDevTools({ mode: "detach" });
 }
 
+function _openWizard() {
+  _closeWindow("intro");
+  wizardWindow = new BrowserWindow({
+    width: 780, height: 620,
+    minWidth: 680, minHeight: 540,
+    frame: false, center: true,
+    titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
+    webPreferences: { preload: _preload(), contextIsolation: true, nodeIntegration: false },
+  });
+  wizardWindow.loadFile(
+    path.join(__dirname, "../../app/dist/index.html"),
+    { query: { wizard: "1" } },
+  );
+  if (IS_DEV) wizardWindow.webContents.openDevTools({ mode: "detach" });
+  wizardWindow.on("closed", () => { wizardWindow = null; });
+}
+
 function _openConnect(fromIntro = false) {
   _closeWindow("intro");
   connectWindow = new BrowserWindow({
@@ -295,12 +315,13 @@ function _openMain(url) {
 }
 
 function _closeWindow(which) {
-  const wins = { intro: introWindow, connect: connectWindow, loading: loadingWindow };
+  const wins = { intro: introWindow, connect: connectWindow, loading: loadingWindow, wizard: wizardWindow };
   const win = wins[which];
   if (win && !win.isDestroyed()) { win.close(); }
-  if (which === "intro") introWindow = null;
+  if (which === "intro")   introWindow   = null;
   if (which === "connect") connectWindow = null;
   if (which === "loading") loadingWindow = null;
+  if (which === "wizard")  wizardWindow  = null;
 }
 
 // ── Connection logic ─────────────────────────────────────────────────────
@@ -317,11 +338,39 @@ async function _connect(connection) {
         if (!lwin.isDestroyed()) lwin.webContents.send("setup-progress", msg);
       });
       _openMain("http://127.0.0.1:7860");
+      _applyPendingWizardSettings();
     } catch (err) {
       if (!lwin.isDestroyed()) lwin.webContents.send("setup-error", err.message || String(err));
     }
   } else {
     _openMain(connection.url);
+  }
+}
+
+async function _applyPendingWizardSettings() {
+  const settings = _pendingWizardSettings;
+  if (!settings) return;
+  _pendingWizardSettings = null;
+
+  const payload = {};
+  if (settings.openai_api_key)    payload.openai_api_key    = settings.openai_api_key;
+  if (settings.anthropic_api_key) payload.anthropic_api_key = settings.anthropic_api_key;
+  if (settings.openai_base_url)   payload.openai_base_url   = settings.openai_base_url;
+  if (settings.default_provider)  payload.default_provider  = settings.default_provider;
+
+  if (!Object.keys(payload).length) return;
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const res = await net.fetch("http://127.0.0.1:7860/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (res.ok) return;
+    } catch (_) {}
   }
 }
 
@@ -486,6 +535,57 @@ ipcMain.handle("remote-install", (event, { host, port, username, password, authT
 ipcMain.handle("list-ssh-keys", () => {
   const { listSshKeys } = require("./remote-install");
   return listSshKeys();
+});
+
+// ── Setup wizard IPC ───────────────────────────────────────────────────────
+ipcMain.handle("check-ollama", async () => {
+  try {
+    return await checkOllamaStatus();
+  } catch (e) {
+    return { installed: false, running: false, models: [], error: e.message };
+  }
+});
+
+ipcMain.handle("install-ollama", async (event) => {
+  try {
+    await installOllama((progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("ollama-progress", progress);
+      }
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+});
+
+ipcMain.handle("pull-ollama-model", async (event, modelName) => {
+  try {
+    await pullModel(modelName, (progress) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send("ollama-progress", progress);
+      }
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+});
+
+ipcMain.on("wizard-connect-local", (_e, settings) => {
+  _pendingWizardSettings = settings || null;
+  markIntroSeen();
+  _closeWindow("wizard");
+  _connect(LOCAL_CONNECTION);
+});
+
+ipcMain.on("wizard-connect-remote", (_e, { name, url }) => {
+  markIntroSeen();
+  const id = saveRemoteConnection(name, url);
+  const conn = getConnections().find((c) => c.id === id)
+    || { id, name, url: url.replace(/\/$/, ""), type: "remote" };
+  _closeWindow("wizard");
+  _connect(conn);
 });
 
 ipcMain.handle("browse-ssh-key", async (event) => {
