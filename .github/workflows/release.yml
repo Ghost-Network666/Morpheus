@@ -4,6 +4,18 @@ on:
   push:
     tags:
       - "v*"
+    branches:
+      - main
+    paths:
+      # Rebuild whenever app code changes — never let binaries fall behind
+      - "desktop/src/**"
+      - "desktop/app/src/**"
+      - "desktop/app/package.json"
+      - "desktop/package.json"
+      - "desktop/electron-builder.yml"
+      - "desktop/scripts/**"
+      - "morpheus/**"
+      - "!morpheus/tests/**"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -12,7 +24,8 @@ on:
         default: false
 
 concurrency:
-  group: release-${{ github.ref }}
+  # One release build at a time; newer run wins, older is cancelled
+  group: release-main
   cancel-in-progress: true
 
 permissions:
