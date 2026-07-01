@@ -236,6 +236,10 @@ jobs:
           VERSION="v${{ needs.prepare.outputs.version }}"
           REPO="${{ github.repository }}"
           FILES=()
+          # Rename x86_64 produced by electron-builder to the expected x64 name for clean downloads
+          if [ -f morpheus-x86_64.AppImage ]; then
+            mv morpheus-x86_64.AppImage morpheus-x64.AppImage
+          fi
           for f in \
             morpheus-x64.AppImage \
             morpheus-amd64.deb \
