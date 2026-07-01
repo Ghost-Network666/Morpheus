@@ -1,20 +1,22 @@
 import { useEffect, useState, lazy, Suspense } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar, type View } from "./components/Sidebar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { CommandPalette } from "./components/CommandPalette";
+import { UpdateBanner } from "./components/UpdateBanner";
 import { useUIStore, applyTheme } from "./store/useUIStore";
 import { useFeatureStore } from "./store/useFeatureStore";
 import { api } from "./lib/api";
 import type { SystemInfo } from "./types";
 
 // Lazy-load heavy pages to keep initial bundle smaller
-const ChatPage      = lazy(() => import("./pages/ChatPage").then((m) => ({ default: m.ChatPage })));
-const TerminalPage  = lazy(() => import("./pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
-const SettingsPage  = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
-const ResearchPage  = lazy(() => import("./pages/ResearchPage").then((m) => ({ default: m.ResearchPage })));
-const RagPage       = lazy(() => import("./pages/RagPage").then((m) => ({ default: m.RagPage })));
+const ChatPage     = lazy(() => import("./pages/ChatPage").then((m) => ({ default: m.ChatPage })));
+const TerminalPage = lazy(() => import("./pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const ResearchPage = lazy(() => import("./pages/ResearchPage").then((m) => ({ default: m.ResearchPage })));
+const RagPage      = lazy(() => import("./pages/RagPage").then((m) => ({ default: m.RagPage })));
 
-// Lighter pages loaded eagerly
 import { SshPage }       from "./pages/SshPage";
 import { NotesPage }     from "./pages/NotesPage";
 import { TasksPage }     from "./pages/TasksPage";
@@ -33,48 +35,129 @@ function PageFallback() {
   );
 }
 
+const PAGE_TRANSITION = {
+  initial:    { opacity: 0, x: 6 },
+  animate:    { opacity: 1, x: 0 },
+  exit:       { opacity: 0 },
+  transition: { duration: 0.15, ease: "easeOut" as const },
+};
+
 export function App() {
   const [view,       setView]       = useState<View>("chat");
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [initError,  setInitError]  = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
 
-  const { theme, sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useUIStore();
+  const { theme, sidebarCollapsed, toggleSidebar } = useUIStore();
   const { modules, setModules } = useFeatureStore();
 
-  // Apply persisted theme on mount
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+  useEffect(() => { applyTheme(theme); }, [theme]);
 
   useEffect(() => {
     api.systemInfo()
       .then((info) => {
         setSystemInfo(info);
-        // Sync feature store from backend
         if (info.modules) {
           const mods: Record<string, boolean> = {};
-          for (const [k, v] of Object.entries(info.modules)) {
-            mods[k] = v !== false;
-          }
+          for (const [k, v] of Object.entries(info.modules)) mods[k] = v !== false;
           setModules(mods);
         }
       })
       .catch((e) => setInitError(String(e)));
   }, []);
 
+  // Listen for in-app update events from main process
+  useEffect(() => {
+    const ea = (window as any).electronAPI;
+    if (!ea) return;
+    const unsub1 = ea.onUpdateDownloaded?.((info: { version: string }) => setUpdateVersion(info.version));
+    return () => { unsub1?.(); };
+  }, []);
+
+  // Open SSH terminal from external events
   useEffect(() => {
     const handler = () => setView("terminal");
     window.addEventListener("open-ssh-terminal", handler);
     return () => window.removeEventListener("open-ssh-terminal", handler);
   }, []);
 
-  // Build systemInfo proxy from Zustand modules so sidebar reacts to toggles
+  // Command palette keyboard shortcut (Ctrl+P / Cmd+P)
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "p") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // Keyboard shortcuts: Ctrl+1–9 for sidebar items
+  useEffect(() => {
+    const VIEWS: View[] = ["chat", "terminal", "ssh", "notes", "tasks", "calendar", "research", "rag", "settings"];
+    function handler(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= VIEWS.length) {
+        e.preventDefault();
+        setView(VIEWS[n - 1]);
+      }
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   const effectiveSystemInfo: SystemInfo | null = systemInfo
     ? { ...systemInfo, modules: { ...systemInfo.modules, ...modules } }
     : null;
 
+  function renderPage() {
+    if (initError && view !== "settings") {
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+          <p className="text-sm font-medium text-text">Could not connect to backend</p>
+          <p className="text-xs text-muted max-w-xs">{initError}</p>
+          <button
+            onClick={() => setView("settings")}
+            className="rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
+          >
+            Open Settings
+          </button>
+        </div>
+      );
+    }
+    return (
+      <Suspense fallback={<PageFallback />}>
+        {view === "chat"        && <ErrorBoundary name="Chat"><ChatPage systemInfo={systemInfo} /></ErrorBoundary>}
+        {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage /></ErrorBoundary>}
+        {view === "ssh"         && <ErrorBoundary name="SSH"><SshPage /></ErrorBoundary>}
+        {view === "research"    && <ErrorBoundary name="Research"><ResearchPage /></ErrorBoundary>}
+        {view === "rag"         && <ErrorBoundary name="Memory"><RagPage /></ErrorBoundary>}
+        {view === "notes"       && <ErrorBoundary name="Notes"><NotesPage /></ErrorBoundary>}
+        {view === "tasks"       && <ErrorBoundary name="Tasks"><TasksPage /></ErrorBoundary>}
+        {view === "calendar"    && <ErrorBoundary name="Calendar"><CalendarPage /></ErrorBoundary>}
+        {view === "email"       && <ErrorBoundary name="Email"><EmailPage /></ErrorBoundary>}
+        {view === "documents"   && <ErrorBoundary name="Documents"><DocumentsPage /></ErrorBoundary>}
+        {view === "obsidian"    && <ErrorBoundary name="Obsidian"><ObsidianPage /></ErrorBoundary>}
+        {view === "vault"       && <ErrorBoundary name="Vault"><VaultPage /></ErrorBoundary>}
+        {view === "cookbook"    && <ErrorBoundary name="Cookbook"><CookbookPage /></ErrorBoundary>}
+        {view === "connections" && <ConnectionsView />}
+        {view === "settings"    && <ErrorBoundary name="Settings"><SettingsPage /></ErrorBoundary>}
+      </Suspense>
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-bg text-text select-none overflow-hidden">
+      {updateVersion && (
+        <UpdateBanner
+          version={updateVersion}
+          onInstall={() => { (window as any).electronAPI?.installUpdate(); }}
+          onDismiss={() => setUpdateVersion(null)}
+        />
+      )}
       <TitleBar systemInfo={systemInfo} />
 
       <div className="flex min-h-0 flex-1">
@@ -88,39 +171,24 @@ export function App() {
           />
         </ErrorBoundary>
 
-        <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          {initError && view !== "settings" ? (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-              <p className="text-sm font-medium text-text">Could not connect to backend</p>
-              <p className="text-xs text-muted max-w-xs">{initError}</p>
-              <button
-                onClick={() => setView("settings")}
-                className="rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
-              >
-                Open Settings
-              </button>
-            </div>
-          ) : (
-            <Suspense fallback={<PageFallback />}>
-              {view === "chat"        && <ErrorBoundary name="Chat"><ChatPage systemInfo={systemInfo} /></ErrorBoundary>}
-              {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage /></ErrorBoundary>}
-              {view === "ssh"         && <ErrorBoundary name="SSH"><SshPage /></ErrorBoundary>}
-              {view === "research"    && <ErrorBoundary name="Research"><ResearchPage /></ErrorBoundary>}
-              {view === "rag"         && <ErrorBoundary name="Memory"><RagPage /></ErrorBoundary>}
-              {view === "notes"       && <ErrorBoundary name="Notes"><NotesPage /></ErrorBoundary>}
-              {view === "tasks"       && <ErrorBoundary name="Tasks"><TasksPage /></ErrorBoundary>}
-              {view === "calendar"    && <ErrorBoundary name="Calendar"><CalendarPage /></ErrorBoundary>}
-              {view === "email"       && <ErrorBoundary name="Email"><EmailPage /></ErrorBoundary>}
-              {view === "documents"   && <ErrorBoundary name="Documents"><DocumentsPage /></ErrorBoundary>}
-              {view === "obsidian"    && <ErrorBoundary name="Obsidian"><ObsidianPage /></ErrorBoundary>}
-              {view === "vault"       && <ErrorBoundary name="Vault"><VaultPage /></ErrorBoundary>}
-              {view === "cookbook"    && <ErrorBoundary name="Cookbook"><CookbookPage /></ErrorBoundary>}
-              {view === "connections" && <ConnectionsView />}
-              {view === "settings"    && <ErrorBoundary name="Settings"><SettingsPage /></ErrorBoundary>}
-            </Suspense>
-          )}
+        <main className="relative flex min-h-0 min-w-0 flex-1 overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={view}
+              {...PAGE_TRANSITION}
+              className="flex min-h-0 min-w-0 flex-1 overflow-hidden absolute inset-0"
+            >
+              {renderPage()}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={(v) => { setView(v); setPaletteOpen(false); }}
+      />
     </div>
   );
 }

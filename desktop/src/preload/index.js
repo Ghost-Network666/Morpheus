@@ -31,7 +31,28 @@ contextBridge.exposeInMainWorld("electronAPI", {
   browseSshKey:            ()    => ipcRenderer.invoke("browse-ssh-key"),
 
   // ── Updates ──────────────────────────────────────────────────────────────────
-  checkForUpdates: () => ipcRenderer.send("check-for-updates"),
+  checkForUpdates:     () => ipcRenderer.send("check-for-updates"),
+  installUpdate:       () => ipcRenderer.send("install-update"),
+  onUpdateAvailable:   (cb) => {
+    const fn = (_e, info) => cb(info);
+    ipcRenderer.on("update-available", fn);
+    return () => ipcRenderer.removeListener("update-available", fn);
+  },
+  onUpdateDownloaded:  (cb) => {
+    const fn = (_e, info) => cb(info);
+    ipcRenderer.on("update-downloaded", fn);
+    return () => ipcRenderer.removeListener("update-downloaded", fn);
+  },
+  onUpdateNotAvailable:(cb) => {
+    const fn = () => cb();
+    ipcRenderer.on("update-not-available", fn);
+    return () => ipcRenderer.removeListener("update-not-available", fn);
+  },
+  onUpdateError:       (cb) => {
+    const fn = () => cb();
+    ipcRenderer.on("update-error", fn);
+    return () => ipcRenderer.removeListener("update-error", fn);
+  },
 
   // ── Main app (bundled native UI) ─────────────────────────────────────────────
   getApiBase: () => ipcRenderer.invoke("get-api-base"),

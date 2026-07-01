@@ -34,39 +34,26 @@ function _initUpdater() {
     autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
 
+    autoUpdater.on("update-available", (info) => {
+      mainWindow?.webContents.send("update-available", { version: info.version });
+    });
+
     autoUpdater.on("update-downloaded", (info) => {
-      const choice = dialog.showMessageBoxSync({
-        type: "info",
-        title: "Update ready",
-        message: `Morpheus ${info.version} has been downloaded.`,
-        detail: "Restart now to install the update, or it will install automatically when you quit.",
-        buttons: ["Restart Now", "Later"],
-        defaultId: 0,
-      });
-      if (choice === 0) autoUpdater.quitAndInstall();
+      // Notify renderer so it can show an in-app banner
+      mainWindow?.webContents.send("update-downloaded", { version: info.version });
     });
 
     autoUpdater.on("update-not-available", () => {
+      mainWindow?.webContents.send("update-not-available");
       if (_updateCheckManual) {
         _updateCheckManual = false;
-        dialog.showMessageBox({
-          type: "info",
-          title: "Up to date",
-          message: `Morpheus v${VERSION} is the latest version.`,
-          buttons: ["OK"],
-        });
       }
     });
 
     autoUpdater.on("error", () => {
+      mainWindow?.webContents.send("update-error");
       if (_updateCheckManual) {
         _updateCheckManual = false;
-        dialog.showMessageBox({
-          type: "warning",
-          title: "Update check failed",
-          message: "Could not check for updates. Verify your internet connection and try again.",
-          buttons: ["OK"],
-        });
       }
     });
 
@@ -496,6 +483,7 @@ ipcMain.handle("get-version", () => VERSION);
 ipcMain.handle("get-api-base", () => apiBase);
 
 ipcMain.on("check-for-updates", () => _checkForUpdatesManually());
+ipcMain.on("install-update", () => _autoUpdater?.quitAndInstall());
 
 ipcMain.handle("remote-install", (event, { host, port, username, password, authType, keyPath, passphrase }) => {
   const { remoteInstall } = require("./remote-install");

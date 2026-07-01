@@ -3,7 +3,7 @@ import { z } from "zod";
 import {
   Save, Eye, EyeOff, RefreshCw, Search,
   Cpu, Globe, Bell, Link2, BookOpen, Layout, Sliders,
-  Palette, Check,
+  Palette, Check, Info, Download,
 } from "lucide-react";
 import { Switch } from "../components/ui/Switch";
 import { api } from "../lib/api";
@@ -115,12 +115,23 @@ export function SettingsPage() {
   const [toggling,    setToggling]    = useState<string | null>(null);
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [appVersion,  setAppVersion]  = useState<string>("");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "up-to-date" | "error">("idle");
 
   const { theme, setTheme, settingsSearch, setSettingsSearch, activeSettingsCategory, setActiveSettingsCategory } = useUIStore();
   const { modules, setModule } = useFeatureStore();
   const toast = useToast();
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const ea = (window as any).electronAPI;
+    if (!ea) return;
+    ea.getVersion?.().then((v: string) => setAppVersion(v)).catch(() => {});
+    const u1 = ea.onUpdateNotAvailable?.(() => setUpdateStatus("up-to-date"));
+    const u2 = ea.onUpdateAvailable?.(() => setUpdateStatus("available"));
+    const u3 = ea.onUpdateError?.(() => setUpdateStatus("error"));
+    return () => { u1?.(); u2?.(); u3?.(); };
+  }, []);
 
   async function load() {
     try {
@@ -272,6 +283,17 @@ export function SettingsPage() {
             <Palette size={13} className={activeSettingsCategory === "appearance" ? "text-accent" : ""} />
             Appearance
           </button>
+          <button
+            onClick={() => setActiveSettingsCategory("about")}
+            className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium transition-all ${
+              activeSettingsCategory === "about"
+                ? "bg-white/[0.08] text-text"
+                : "text-muted hover:bg-white/[0.05] hover:text-text"
+            }`}
+          >
+            <Info size={13} className={activeSettingsCategory === "about" ? "text-accent" : ""} />
+            About
+          </button>
         </nav>
       </div>
 
@@ -281,13 +303,14 @@ export function SettingsPage() {
           <h1 className="text-sm font-semibold text-text">
             {activeSettingsCategory === "modules"    ? "Modules"
              : activeSettingsCategory === "appearance" ? "Appearance"
+             : activeSettingsCategory === "about"      ? "About"
              : activeCategory?.label ?? "Settings"}
           </h1>
           <div className="flex items-center gap-2">
             <button onClick={load} className="text-muted hover:text-text transition-colors p-1.5 rounded-md hover:bg-white/5">
               <RefreshCw size={12} />
             </button>
-            {activeSettingsCategory !== "modules" && activeSettingsCategory !== "appearance" && (
+            {activeSettingsCategory !== "modules" && activeSettingsCategory !== "appearance" && activeSettingsCategory !== "about" && (
               <button
                 onClick={save}
                 disabled={saving}
@@ -302,6 +325,57 @@ export function SettingsPage() {
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
           {/* Appearance tab */}
+          {/* About tab */}
+          {activeSettingsCategory === "about" && (
+            <div className="max-w-md space-y-6">
+              <div className="glass-panel rounded-xl border p-5 space-y-3" style={{ borderColor: "var(--glass-border)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20">
+                    <Info size={18} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-text">Morpheus</p>
+                    <p className="text-xs text-muted">{appVersion ? `v${appVersion}` : "Desktop App"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="glass-panel rounded-xl border p-4 space-y-3" style={{ borderColor: "var(--glass-border)" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted/60">Updates</p>
+                <p className="text-xs text-muted leading-relaxed">
+                  Morpheus updates automatically in the background. When a new version is downloaded,
+                  a banner appears at the top of the app to restart and install it.
+                </p>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setUpdateStatus("checking");
+                      (window as any).electronAPI?.checkForUpdates();
+                    }}
+                    disabled={updateStatus === "checking"}
+                    className="flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/25 disabled:opacity-50 transition-colors"
+                  >
+                    {updateStatus === "checking"
+                      ? <><RefreshCw size={12} className="animate-spin" /> Checking…</>
+                      : <><Download size={12} /> Check for Updates</>
+                    }
+                  </button>
+                  {updateStatus === "up-to-date" && (
+                    <span className="flex items-center gap-1 text-xs text-green-400">
+                      <Check size={11} /> Up to date
+                    </span>
+                  )}
+                  {updateStatus === "available" && (
+                    <span className="text-xs text-accent">Update downloading…</span>
+                  )}
+                  {updateStatus === "error" && (
+                    <span className="text-xs text-red-400">Check failed — try again</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {activeSettingsCategory === "appearance" && (
             <div className="max-w-xl space-y-6">
               <div>
@@ -365,7 +439,7 @@ export function SettingsPage() {
           )}
 
           {/* Settings categories */}
-          {activeSettingsCategory !== "modules" && activeSettingsCategory !== "appearance" && activeCategory && (
+          {activeSettingsCategory !== "modules" && activeSettingsCategory !== "appearance" && activeSettingsCategory !== "about" && activeCategory && (
             <div className="max-w-xl">
               <div className="glass-panel rounded-xl border divide-y" style={{ borderColor: "var(--glass-border)" }}>
                 {activeCategory.fields.map((field) => (
