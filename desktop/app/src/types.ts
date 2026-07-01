@@ -135,8 +135,8 @@ export interface FSEntry {
 export interface ObsidianFile {
   path: string;
   title: string;
-  modified: string;
-  size: number;
+  modified_at: string | null;
+  tags?: string[];
 }
 
 export interface VaultEntry {

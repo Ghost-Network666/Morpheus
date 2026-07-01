@@ -103,7 +103,7 @@ export function ObsidianPage() {
               <FileText size={13} className="shrink-0 mt-0.5" />
               <div className="min-w-0">
                 <p className="truncate">{file.title || file.path.split("/").pop()}</p>
-                <p className="text-[10px] text-muted/50">{new Date(file.modified).toLocaleDateString()}</p>
+                <p className="text-[10px] text-muted/50">{file.modified_at ? new Date(file.modified_at).toLocaleDateString() : ""}</p>
               </div>
             </button>
           ))}
