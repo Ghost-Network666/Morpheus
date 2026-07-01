@@ -20,7 +20,7 @@ let tray          = null;
 let activeConn    = null;
 let apiBase       = null;
 
-// ── Auto-updater ──────────────────────────────────────────────────────────────
+// ── Auto-updater ──────────────────────────────────────────────────────────
 let _autoUpdater = null;
 
 function _initUpdater() {
@@ -90,7 +90,7 @@ function _checkForUpdatesManually() {
   });
 }
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
+// ── Boot ───────────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   _buildAppMenu();
   _initUpdater();
@@ -118,7 +118,7 @@ app.on("activate", () => {
 
 app.on("before-quit", () => stopServer());
 
-// ── Native app menu ───────────────────────────────────────────────────────────
+// ── Native app menu ─────────────────────────────────────────────────────
 function _buildAppMenu() {
   const isMac = process.platform === "darwin";
 
@@ -218,7 +218,7 @@ function _showAbout() {
   });
 }
 
-// ── Window helpers ────────────────────────────────────────────────────────────
+// ── Window helpers ───────────────────────────────────────────────────────
 function _preload() {
   return path.join(__dirname, "../preload/index.js");
 }
@@ -308,7 +308,7 @@ function _closeWindow(which) {
   if (which === "loading") loadingWindow = null;
 }
 
-// ── Connection logic ──────────────────────────────────────────────────────────
+// ── Connection logic ─────────────────────────────────────────────────────
 async function _connect(connection) {
   _closeWindow("connect");
   _closeWindow("loading");
@@ -330,7 +330,7 @@ async function _connect(connection) {
   }
 }
 
-// ── Tray ──────────────────────────────────────────────────────────────────────
+// ── Tray ───────────────────────────────────────────────────────────────
 function _createTray() {
   if (tray) return;
   const assetsDir = app.isPackaged
@@ -389,7 +389,7 @@ function _quit() {
   app.quit();
 }
 
-// ── IPC ───────────────────────────────────────────────────────────────────────
+// ── IPC ───────────────────────────────────────────────────────────────
 ipcMain.on("intro-done", () => {
   markIntroSeen();
   _openConnect(true);
@@ -468,7 +468,27 @@ ipcMain.handle("remote-install", (event, { host, port, username, password, authT
           event.sender.send("remote-install-progress", msg);
         }
       },
-      (err) => resolve({ ok: !err, error: err || null }),
+      (err) => {
+        const result = { ok: !err, error: err || null };
+
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("remote-install-completed", result);
+        }
+
+        resolve(result);
+
+        if (!err) {
+          setTimeout(() => {
+            try {
+              try { stopServer(); } catch (_) {}
+              app.relaunch();
+              app.exit(0);
+            } catch (e) {
+              console.error("Failed to relaunch after remote install:", e);
+            }
+          }, 2000);
+        }
+      },
     );
   });
 });
