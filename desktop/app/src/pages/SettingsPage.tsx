@@ -116,7 +116,7 @@ export function SettingsPage() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [appVersion,  setAppVersion]  = useState<string>("");
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "up-to-date" | "error">("idle");
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "downloaded" | "up-to-date" | "error">("idle");
 
   const { theme, setTheme, settingsSearch, setSettingsSearch, activeSettingsCategory, setActiveSettingsCategory } = useUIStore();
   const { modules, setModule } = useFeatureStore();
@@ -130,7 +130,8 @@ export function SettingsPage() {
     const u1 = ea.onUpdateNotAvailable?.(() => setUpdateStatus("up-to-date"));
     const u2 = ea.onUpdateAvailable?.(() => setUpdateStatus("available"));
     const u3 = ea.onUpdateError?.(() => setUpdateStatus("error"));
-    return () => { u1?.(); u2?.(); u3?.(); };
+    const u4 = ea.onUpdateDownloaded?.(() => setUpdateStatus("downloaded"));
+    return () => { u1?.(); u2?.(); u3?.(); u4?.(); };
   }, []);
 
   async function load() {
@@ -346,27 +347,37 @@ export function SettingsPage() {
                   Morpheus updates automatically in the background. When a new version is downloaded,
                   a banner appears at the top of the app to restart and install it.
                 </p>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      setUpdateStatus("checking");
-                      (window as any).electronAPI?.checkForUpdates();
-                    }}
-                    disabled={updateStatus === "checking"}
-                    className="flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/25 disabled:opacity-50 transition-colors"
-                  >
-                    {updateStatus === "checking"
-                      ? <><RefreshCw size={12} className="animate-spin" /> Checking…</>
-                      : <><Download size={12} /> Check for Updates</>
-                    }
-                  </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  {updateStatus !== "downloaded" && (
+                    <button
+                      onClick={() => {
+                        setUpdateStatus("checking");
+                        (window as any).electronAPI?.checkForUpdates();
+                      }}
+                      disabled={updateStatus === "checking" || updateStatus === "available"}
+                      className="flex items-center gap-1.5 rounded-lg bg-accent/15 border border-accent/30 px-3 py-1.5 text-xs font-medium text-accent hover:bg-accent/25 disabled:opacity-50 transition-colors"
+                    >
+                      {updateStatus === "checking"
+                        ? <><RefreshCw size={12} className="animate-spin" /> Checking…</>
+                        : <><Download size={12} /> Check for Updates</>
+                      }
+                    </button>
+                  )}
+                  {updateStatus === "downloaded" && (
+                    <button
+                      onClick={() => (window as any).electronAPI?.installUpdate()}
+                      className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
+                    >
+                      <Download size={12} /> Restart &amp; Install Update
+                    </button>
+                  )}
                   {updateStatus === "up-to-date" && (
                     <span className="flex items-center gap-1 text-xs text-green-400">
                       <Check size={11} /> Up to date
                     </span>
                   )}
                   {updateStatus === "available" && (
-                    <span className="text-xs text-accent">Update downloading…</span>
+                    <span className="text-xs text-accent">Downloading update…</span>
                   )}
                   {updateStatus === "error" && (
                     <span className="text-xs text-red-400">Check failed — try again</span>
