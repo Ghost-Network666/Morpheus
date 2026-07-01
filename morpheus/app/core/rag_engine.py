@@ -115,6 +115,45 @@ async def delete_document(doc_id: str) -> bool:
         return False
 
 
+async def list_chunks(doc_id: str) -> list[dict]:
+    """Return rich per-chunk view for the RAG Metadata Sandbox (text, index, est. tokens, source)."""
+    col = _get_collection()
+    if not col:
+        return []
+    try:
+        res = col.get(where={"doc_id": doc_id}, include=["documents", "metadatas", "ids"])
+        out = []
+        ids = res.get("ids", []) or []
+        docs = res.get("documents", []) or []
+        metas = res.get("metadatas", []) or []
+        for i in range(len(ids)):
+            text = docs[i] if i < len(docs) else ""
+            meta = metas[i] if i < len(metas) and metas[i] else {}
+            tokens = max(1, int(len(text.split()) * 1.33))
+            out.append({
+                "id": ids[i],
+                "text": text,
+                "chunk_index": meta.get("chunk", i),
+                "tokens": tokens,
+                "source": meta.get("filename", meta.get("source", "document")),
+            })
+        out.sort(key=lambda x: x.get("chunk_index", 0))
+        return out
+    except Exception:
+        return []
+
+
+async def delete_chunk(chunk_id: str) -> bool:
+    col = _get_collection()
+    if not col:
+        return False
+    try:
+        col.delete(ids=[chunk_id])
+        return True
+    except Exception:
+        return False
+
+
 def _chunk_text(text: str, size: int, overlap: int) -> list[str]:
     words = text.split()
     chunks = []
