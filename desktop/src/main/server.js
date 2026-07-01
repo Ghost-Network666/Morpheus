@@ -2,7 +2,7 @@
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const { spawn } = require("child_process");
+const { spawn, execFileSync } = require("child_process");
 
 const PORT = 7860;
 const READY_TIMEOUT_MS = 120_000;  // 2 min for first-run venv creation (dev mode only)
@@ -59,6 +59,14 @@ function _bundledPython() {
       "This Morpheus build is missing its bundled Python runtime. Please reinstall the latest version from the Morpheus releases page."
     );
   }
+
+  if (process.platform === "darwin") {
+    try { fs.chmodSync(bin, 0o755); } catch (_) {}
+    try {
+      execFileSync("xattr", ["-r", "-d", "com.apple.quarantine", runtimeDir], { stdio: "ignore" });
+    } catch (_) {}
+  }
+
   return bin;
 }
 

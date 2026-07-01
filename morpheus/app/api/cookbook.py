@@ -21,13 +21,14 @@ async def get_recommendations(user: User = Depends(require_user)):
 
 @router.get("/models")
 async def list_models(user: User = Depends(require_user)):
-    return await model_manager.list_models()
+    models = await model_manager.list_models()
+    return {"models": models}
 
 
 @router.post("/models/download")
 async def download_model(request: Request, user: User = Depends(require_user)):
     body = await request.json()
-    model_name = body.get("model", "")
+    model_name = body.get("name") or body.get("model", "")
     if not model_name:
         raise HTTPException(400, "model required")
 

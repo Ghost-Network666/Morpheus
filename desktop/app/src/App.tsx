@@ -48,6 +48,7 @@ export function App() {
   const [initError,  setInitError]  = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
+  const [pendingSshSession, setPendingSshSession] = useState<{ session_id: string; wsUrl: string; label: string } | null>(null);
 
   const { theme, sidebarCollapsed, toggleSidebar } = useUIStore();
   const { modules, setModules } = useFeatureStore();
@@ -77,7 +78,11 @@ export function App() {
 
   // Open SSH terminal from external events
   useEffect(() => {
-    const handler = () => setView("terminal");
+    const handler = (e: Event) => {
+      const { session_id, wsUrl, label } = (e as CustomEvent).detail ?? {};
+      if (session_id && wsUrl) setPendingSshSession({ session_id, wsUrl, label: label || "SSH" });
+      setView("terminal");
+    };
     window.addEventListener("open-ssh-terminal", handler);
     return () => window.removeEventListener("open-ssh-terminal", handler);
   }, []);
@@ -131,7 +136,7 @@ export function App() {
     return (
       <Suspense fallback={<PageFallback />}>
         {view === "chat"        && <ErrorBoundary name="Chat"><ChatPage systemInfo={systemInfo} /></ErrorBoundary>}
-        {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage /></ErrorBoundary>}
+        {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage sshSession={pendingSshSession} onSshSessionConsumed={() => setPendingSshSession(null)} /></ErrorBoundary>}
         {view === "ssh"         && <ErrorBoundary name="SSH"><SshPage /></ErrorBoundary>}
         {view === "research"    && <ErrorBoundary name="Research"><ResearchPage /></ErrorBoundary>}
         {view === "rag"         && <ErrorBoundary name="Memory"><RagPage /></ErrorBoundary>}

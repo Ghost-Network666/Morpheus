@@ -13,7 +13,18 @@ interface Tab {
   ws: WebSocket | null;
 }
 
-export function TerminalPage() {
+interface SshSessionInit {
+  session_id: string;
+  wsUrl: string;
+  label: string;
+}
+
+interface TerminalPageProps {
+  sshSession?: SshSessionInit | null;
+  onSshSessionConsumed?: () => void;
+}
+
+export function TerminalPage({ sshSession, onSshSessionConsumed }: TerminalPageProps) {
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [activeTab, setActiveTab] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +37,7 @@ export function TerminalPage() {
   }, [tabs]);
 
   useEffect(() => {
-    openTab();
+    if (!sshSession) openTab();
     return () => {
       tabsRef.current.forEach((t) => {
         t.ws?.close();
@@ -34,6 +45,13 @@ export function TerminalPage() {
       });
     };
   }, []);
+
+  useEffect(() => {
+    if (sshSession) {
+      openSshTab(sshSession);
+      onSshSessionConsumed?.();
+    }
+  }, [sshSession]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -53,73 +71,71 @@ export function TerminalPage() {
     } catch { /* ignore */ }
   }
 
+  function _makeTerminal() {
+    const term = new Terminal({
+      cursorBlink: true,
+      fontFamily: '"SF Mono", "Fira Code", "Cascadia Code", monospace',
+      fontSize: 13,
+      lineHeight: 1.4,
+      theme: {
+        background: "#0a0a12",
+        foreground: "#e4e4ec",
+        cursor: "#7c5cff",
+        selectionBackground: "#7c5cff44",
+        black: "#1a1a2e", red: "#f38ba8", green: "#a6e3a1", yellow: "#f9e2af",
+        blue: "#89b4fa", magenta: "#cba6f7", cyan: "#89dceb", white: "#cdd6f4",
+        brightBlack: "#45475a", brightRed: "#f38ba8", brightGreen: "#a6e3a1",
+        brightYellow: "#f9e2af", brightBlue: "#89b4fa", brightMagenta: "#cba6f7",
+        brightCyan: "#89dceb", brightWhite: "#cdd6f4",
+      },
+    });
+    return term;
+  }
+
+  function _attachTab(tab: Tab) {
+    const { term, fitAddon, ws, id } = tab;
+    ws!.onopen = () => { setTimeout(() => fitTab(tab), 100); };
+    ws!.onmessage = (e) => {
+      if (e.data instanceof ArrayBuffer) term.write(new Uint8Array(e.data));
+      else if (typeof e.data === "string") term.write(e.data);
+    };
+    ws!.onclose = () => term.write("\r\n\x1b[90m[connection closed]\x1b[0m\r\n");
+    ws!.onerror = () => term.write("\r\n\x1b[31m[connection error]\x1b[0m\r\n");
+    term.onData((data) => { if (ws!.readyState === WebSocket.OPEN) ws!.send(new TextEncoder().encode(data)); });
+    setTabs((prev) => [...prev, tab]);
+    setActiveTab(id);
+    setTimeout(() => {
+      const el = tabContainersRef.current.get(id);
+      if (el) { term.open(el); fitAddon.fit(); }
+    }, 50);
+  }
+
   async function openTab() {
     try {
       setError(null);
       const { session_id } = await api.startTerminal(120, 30);
-
-      const term = new Terminal({
-        cursorBlink: true,
-        fontFamily: '"SF Mono", "Fira Code", "Cascadia Code", monospace',
-        fontSize: 13,
-        lineHeight: 1.4,
-        theme: {
-          background: "#0a0a12",
-          foreground: "#e4e4ec",
-          cursor: "#7c5cff",
-          selectionBackground: "#7c5cff44",
-          black: "#1a1a2e", red: "#f38ba8", green: "#a6e3a1", yellow: "#f9e2af",
-          blue: "#89b4fa", magenta: "#cba6f7", cyan: "#89dceb", white: "#cdd6f4",
-          brightBlack: "#45475a", brightRed: "#f38ba8", brightGreen: "#a6e3a1",
-          brightYellow: "#f9e2af", brightBlue: "#89b4fa", brightMagenta: "#cba6f7",
-          brightCyan: "#89dceb", brightWhite: "#cdd6f4",
-        },
-      });
-
+      const term = _makeTerminal();
       const fitAddon = new FitAddon();
       term.loadAddon(fitAddon);
-
       const wsUrl = await api.terminalWsUrl(session_id);
       const ws = new WebSocket(wsUrl);
       ws.binaryType = "arraybuffer";
-
-      ws.onopen = () => {
-        setTimeout(() => fitTab(tab), 100);
-      };
-
-      ws.onmessage = (e) => {
-        if (e.data instanceof ArrayBuffer) {
-          term.write(new Uint8Array(e.data));
-        } else if (typeof e.data === "string") {
-          term.write(e.data);
-        }
-      };
-
-      ws.onclose = () => term.write("\r\n\x1b[90m[connection closed]\x1b[0m\r\n");
-      ws.onerror = () => term.write("\r\n\x1b[31m[connection error]\x1b[0m\r\n");
-
-      term.onData((data) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(new TextEncoder().encode(data));
-        }
-      });
-
       const label = `Terminal ${tabsRef.current.length + 1}`;
       const tab: Tab = { id: session_id, label, term, fitAddon, ws };
-
-      setTabs((prev) => [...prev, tab]);
-      setActiveTab(session_id);
-
-      setTimeout(() => {
-        const el = tabContainersRef.current.get(session_id);
-        if (el) {
-          term.open(el);
-          fitAddon.fit();
-        }
-      }, 50);
+      _attachTab(tab);
     } catch (e) {
       setError(String(e));
     }
+  }
+
+  function openSshTab({ session_id, wsUrl, label }: SshSessionInit) {
+    const term = _makeTerminal();
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = "arraybuffer";
+    const tab: Tab = { id: session_id, label, term, fitAddon, ws };
+    _attachTab(tab);
   }
 
   async function closeTab(id: string, e: React.MouseEvent) {

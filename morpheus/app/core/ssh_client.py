@@ -18,6 +18,17 @@ class SSHConnection:
 _connections: dict[int, SSHConnection] = {}  # profile_id -> connection
 
 
+def _load_private_key(key_data: str, passphrase: str = None) -> paramiko.PKey:
+    buf = io.StringIO(key_data)
+    for cls in [paramiko.RSAKey, paramiko.Ed25519Key, paramiko.ECDSAKey, paramiko.DSSKey]:
+        try:
+            buf.seek(0)
+            return cls.from_private_key(buf, password=passphrase)
+        except (paramiko.SSHException, ValueError):
+            continue
+    raise paramiko.SSHException("Unsupported or invalid private key format")
+
+
 def _build_client(profile) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -32,7 +43,7 @@ def _build_client(profile) -> paramiko.SSHClient:
 
     if profile.auth_type == "key" and profile.key_encrypted:
         key_data = decrypt(profile.key_encrypted)
-        pkey = paramiko.RSAKey.from_private_key(io.StringIO(key_data))
+        pkey = _load_private_key(key_data)
         connect_kwargs["pkey"] = pkey
     elif profile.password_encrypted:
         connect_kwargs["password"] = decrypt(profile.password_encrypted)

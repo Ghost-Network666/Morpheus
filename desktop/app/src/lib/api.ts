@@ -182,8 +182,11 @@ export const api = {
     req<any>("/api/ssh/profiles", { method: "POST", body: JSON.stringify(data) }),
   deleteSshProfile: (id: number) =>
     req<{ ok: boolean }>(`/api/ssh/profiles/${id}`, { method: "DELETE" }),
-  connectSshProfile: (id: number) =>
-    req<{ session_id: string }>(`/api/ssh/profiles/${id}/connect`, { method: "POST" }),
+  connectSshProfile: (id: number, cols = 120, rows = 30) =>
+    req<{ session_id: string }>(`/api/ssh/profiles/${id}/terminal`, {
+      method: "POST",
+      body: JSON.stringify({ cols, rows }),
+    }),
 
   // ── Email ──────────────────────────────────────────────────────────────────
   listEmailAccounts: () => req<EmailAccount[]>("/api/email/accounts"),

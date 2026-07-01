@@ -120,6 +120,11 @@ async def close_session(session_id: str):
     session = _sessions.pop(session_id, None)
     if not session:
         return
+    if session.ssh_channel:
+        try:
+            session.ssh_channel.close()
+        except Exception:
+            pass
     if session.pty_proc:
         try:
             session.pty_proc.close()
