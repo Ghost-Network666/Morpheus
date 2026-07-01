@@ -17,10 +17,9 @@
   "scripts": {
     "start": "electron . --dev",
     "start:dev": "electron . --dev",
-    "copy-static": "node scripts/copy-static.js",
-    "build": "npm run copy-static && electron-builder",
-    "pack": "npm run copy-static && electron-builder --dir",
-    "dist": "npm run copy-static && electron-builder --publish never",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --publish never",
     "fetch:python:win": "node scripts/fetch-python-runtime.js win-x64",
     "fetch:python:mac:x64": "node scripts/fetch-python-runtime.js mac-x64",
     "fetch:python:mac:arm64": "node scripts/fetch-python-runtime.js mac-arm64",

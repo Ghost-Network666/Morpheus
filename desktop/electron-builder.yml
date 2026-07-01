@@ -47,7 +47,7 @@ extraResources:
 
 files:
   - src/**/*
-  - app/static/**/*
+  - app/dist/**/*
   - "!app/src/**"
   - "!app/node_modules/**"
   - "!app/package.json"
