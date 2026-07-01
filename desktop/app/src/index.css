@@ -13,6 +13,7 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
   font-size: 13px;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 .titlebar-drag {
@@ -24,15 +25,126 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #262633;
-  border-radius: 4px;
+  background: #2e2e40;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3e3e54;
 }
 
 ::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* xterm.js styles */
+.xterm-wrapper {
+  height: 100%;
+  padding: 8px;
+  background: #0a0a12;
+}
+
+.xterm-wrapper .xterm {
+  height: 100%;
+}
+
+/* highlight.js code theme */
+.hljs {
+  background: #1a1a28 !important;
+  border-radius: 6px;
+  padding: 12px !important;
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+/* Markdown prose styles */
+.prose-dark {
+  color: #e4e4ec;
+  line-height: 1.65;
+}
+
+.prose-dark p {
+  margin: 0.5em 0;
+}
+
+.prose-dark p:first-child {
+  margin-top: 0;
+}
+
+.prose-dark p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-dark h1, .prose-dark h2, .prose-dark h3, .prose-dark h4 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+  color: #f0f0fa;
+}
+
+.prose-dark h1 { font-size: 1.3em; }
+.prose-dark h2 { font-size: 1.15em; }
+.prose-dark h3 { font-size: 1.05em; }
+
+.prose-dark ul, .prose-dark ol {
+  padding-left: 1.4em;
+  margin: 0.5em 0;
+}
+
+.prose-dark li {
+  margin: 0.2em 0;
+}
+
+.prose-dark code:not(pre code) {
+  background: #2a2a3e;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  font-size: 0.9em;
+  color: #c4b5fd;
+}
+
+.prose-dark pre {
+  margin: 0.6em 0;
+}
+
+.prose-dark table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.6em 0;
+  font-size: 0.9em;
+}
+
+.prose-dark th, .prose-dark td {
+  border: 1px solid #2e2e40;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.prose-dark th {
+  background: #1e1e2e;
+  font-weight: 600;
+}
+
+.prose-dark blockquote {
+  border-left: 3px solid #7c5cff;
+  padding-left: 12px;
+  margin: 0.6em 0;
+  color: #9b9bb0;
+}
+
+.prose-dark a {
+  color: #7c5cff;
+  text-decoration: underline;
+}
+
+.prose-dark hr {
+  border: none;
+  border-top: 1px solid #262633;
+  margin: 1em 0;
 }

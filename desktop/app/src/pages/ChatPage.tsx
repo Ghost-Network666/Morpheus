@@ -1,25 +1,35 @@
 import { useEffect, useRef, useState } from "react";
+import { Send, Plus, Trash2, StopCircle, Bot, User } from "lucide-react";
 import { api } from "../lib/api";
+import { MarkdownRenderer } from "../components/MarkdownRenderer";
 import type { ChatMessage, ChatSession, SystemInfo } from "../types";
 
-export function ChatPage() {
+export function ChatPage({ systemInfo }: { systemInfo: SystemInfo | null }) {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [model, setModel] = useState(systemInfo?.default_model ?? "");
+  const [provider, setProvider] = useState(systemInfo?.default_provider ?? "");
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    api.systemInfo().then(setSystemInfo).catch((e) => setError(String(e)));
+    if (systemInfo) {
+      setModel(systemInfo.default_model ?? "");
+      setProvider(systemInfo.default_provider ?? "");
+    }
+  }, [systemInfo]);
+
+  useEffect(() => {
     refreshSessions();
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   async function refreshSessions() {
@@ -49,12 +59,14 @@ export function ChatPage() {
       setSessions((prev) => [session, ...prev]);
       setActiveId(session.id);
       setMessages([]);
+      textareaRef.current?.focus();
     } catch (e) {
       setError(String(e));
     }
   }
 
-  async function removeSession(id: number) {
+  async function removeSession(id: number, e: React.MouseEvent) {
+    e.stopPropagation();
     try {
       await api.deleteSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
@@ -100,26 +112,27 @@ export function ChatPage() {
       await api.sendMessage(
         sessionId,
         content,
-        {
-          model: systemInfo?.default_model,
-          provider: systemInfo?.default_provider,
-        },
+        { model: model || undefined, provider: provider || undefined },
         (chunk) => {
           setMessages((prev) =>
-            prev.map((m) =>
-              m.id === assistantId ? { ...m, content: m.content + chunk } : m,
-            ),
+            prev.map((m) => m.id === assistantId ? { ...m, content: m.content + chunk } : m),
           );
         },
         controller.signal,
       );
     } catch (e) {
-      setError(String(e));
+      if (!(e instanceof Error && e.name === "AbortError")) {
+        setError(String(e));
+      }
     } finally {
       setStreaming(false);
       abortRef.current = null;
       refreshSessions();
     }
+  }
+
+  function stopStreaming() {
+    abortRef.current?.abort();
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -129,97 +142,175 @@ export function ChatPage() {
     }
   }
 
+  function autoResize(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setDraft(e.target.value);
+    const el = e.target;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-1">
-      <div className="flex w-56 shrink-0 flex-col border-r border-border bg-panel">
-        <div className="flex items-center justify-between px-3 py-2">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-            Sessions
-          </span>
+      {/* Session list */}
+      <div className="flex w-52 shrink-0 flex-col border-r border-border bg-panel/60">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted">Chats</span>
           <button
             onClick={newSession}
-            className="rounded px-2 py-0.5 text-xs text-accent hover:bg-accent/10"
+            title="New chat"
+            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-accent hover:bg-accent/10 transition-colors"
           >
-            + New
+            <Plus size={12} />
+            New
           </button>
         </div>
-        <div className="flex-1 overflow-y-auto px-1.5">
+        <div className="flex-1 overflow-y-auto p-1.5 flex flex-col gap-0.5">
+          {sessions.length === 0 && (
+            <p className="px-2 py-3 text-xs text-muted text-center">No conversations yet</p>
+          )}
           {sessions.map((s) => (
             <div
               key={s.id}
               onClick={() => selectSession(s.id)}
-              className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-xs ${
-                activeId === s.id ? "bg-accent/15 text-text" : "text-muted hover:bg-white/5"
+              className={`group flex cursor-pointer items-center justify-between rounded-md px-2 py-1.5 text-xs transition-colors ${
+                activeId === s.id
+                  ? "bg-accent/15 text-text"
+                  : "text-muted hover:bg-white/5 hover:text-text"
               }`}
             >
               <span className="truncate">{s.title || "New Chat"}</span>
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeSession(s.id);
-                }}
-                className="ml-1 hidden text-muted hover:text-red-400 group-hover:inline"
+                onClick={(e) => removeSession(s.id, e)}
+                className="ml-1 hidden text-muted/50 hover:text-red-400 group-hover:flex items-center"
               >
-                ✕
+                <Trash2 size={11} />
               </button>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Main chat area */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
-          {messages.length === 0 && (
-            <div className="flex h-full items-center justify-center text-sm text-muted">
-              Start a conversation
+        {/* Model selector bar */}
+        <div className="flex items-center gap-2 border-b border-border bg-panel/40 px-4 py-1.5">
+          <span className="text-xs text-muted">Model:</span>
+          <input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            placeholder={systemInfo?.default_model || "e.g. llama3.2:3b"}
+            className="rounded border border-border bg-bg px-2 py-0.5 text-xs text-text outline-none focus:border-accent w-44"
+          />
+          <span className="text-xs text-muted">via</span>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+            className="rounded border border-border bg-bg px-2 py-0.5 text-xs text-text outline-none focus:border-accent"
+          >
+            <option value="">Auto</option>
+            <option value="ollama">Ollama</option>
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="lmstudio">LM Studio</option>
+          </select>
+        </div>
+
+        {/* Messages */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+          {messages.length === 0 && !streaming && (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-muted">
+              <Bot size={40} className="opacity-30" />
+              <p className="text-sm">Start a conversation</p>
+              {!systemInfo?.default_model && (
+                <p className="text-xs text-amber-400/80 max-w-xs text-center">
+                  No model configured — go to Settings to add an AI provider.
+                </p>
+              )}
             </div>
           )}
-          <div className="mx-auto flex max-w-3xl flex-col gap-4">
+          <div className="mx-auto flex max-w-3xl flex-col gap-5">
             {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex flex-col gap-1 ${m.role === "user" ? "items-end" : "items-start"}`}
-              >
-                <span className="text-[10px] uppercase tracking-wide text-muted">
-                  {m.role}
-                </span>
-                <div
-                  className={`max-w-[85%] whitespace-pre-wrap rounded-xl px-3 py-2 text-sm ${
-                    m.role === "user" ? "bg-accent text-white" : "bg-panel text-text"
-                  }`}
-                >
-                  {m.content || (streaming && m.role === "assistant" ? "…" : "")}
-                </div>
-              </div>
+              <Message key={m.id} message={m} streaming={streaming} />
             ))}
           </div>
         </div>
 
         {error && (
-          <div className="border-t border-border bg-red-950/40 px-6 py-2 text-xs text-red-300">
+          <div className="border-t border-border bg-red-950/30 px-4 py-2 text-xs text-red-300/90">
             {error}
           </div>
         )}
 
+        {/* Input */}
         <div className="border-t border-border p-3">
           <div className="mx-auto flex max-w-3xl items-end gap-2">
             <textarea
+              ref={textareaRef}
               value={draft}
-              onChange={(e) => setDraft(e.target.value)}
+              onChange={autoResize}
               onKeyDown={onKeyDown}
-              placeholder="Message Morpheus…"
+              placeholder="Message… (Enter to send, Shift+Enter for newline)"
               rows={1}
-              className="flex-1 resize-none rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text outline-none focus:border-accent"
+              className="flex-1 resize-none rounded-lg border border-border bg-panel px-3 py-2 text-sm text-text placeholder-muted outline-none focus:border-accent transition-colors"
+              style={{ minHeight: 38, maxHeight: 160 }}
             />
-            <button
-              onClick={send}
-              disabled={streaming || !draft.trim()}
-              className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-            >
-              {streaming ? "…" : "Send"}
-            </button>
+            {streaming ? (
+              <button
+                onClick={stopStreaming}
+                className="flex items-center gap-1.5 rounded-lg bg-red-500/20 border border-red-500/30 px-3 py-2 text-xs font-medium text-red-300 hover:bg-red-500/30 transition-colors"
+              >
+                <StopCircle size={14} />
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={send}
+                disabled={!draft.trim()}
+                className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white disabled:opacity-30 hover:bg-accent/90 transition-colors"
+              >
+                <Send size={14} />
+                Send
+              </button>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Message({ message: m, streaming }: { message: ChatMessage; streaming: boolean }) {
+  const isUser = m.role === "user";
+  const isEmpty = !m.content && streaming && !isUser;
+
+  return (
+    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+      <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs ${
+        isUser ? "bg-accent/20 text-accent" : "bg-white/5 text-muted"
+      }`}>
+        {isUser ? <User size={13} /> : <Bot size={13} />}
+      </div>
+      <div className={`min-w-0 max-w-[85%] ${isUser ? "items-end" : "items-start"} flex flex-col gap-1`}>
+        <div className={`rounded-xl px-3.5 py-2.5 text-sm ${
+          isUser
+            ? "bg-accent/20 text-text"
+            : "bg-panel/80 text-text border border-border/50"
+        }`}>
+          {isEmpty ? (
+            <span className="inline-flex gap-1 items-center text-muted">
+              <span className="animate-pulse">●</span>
+              <span className="animate-pulse" style={{ animationDelay: "0.2s" }}>●</span>
+              <span className="animate-pulse" style={{ animationDelay: "0.4s" }}>●</span>
+            </span>
+          ) : isUser ? (
+            <span className="whitespace-pre-wrap">{m.content}</span>
+          ) : (
+            <MarkdownRenderer content={m.content} />
+          )}
+        </div>
+        {m.model_used && (
+          <span className="text-[10px] text-muted/60 px-1">{m.model_used}</span>
+        )}
       </div>
     </div>
   );
