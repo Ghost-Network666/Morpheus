@@ -52,6 +52,7 @@ describe("Sidebar", () => {
   it("applies active styling to the active view", () => {
     render(<Sidebar {...defaultSidebarProps} />);
     const chatBtn = screen.getByText("Chat").closest("button");
-    expect(chatBtn?.className).toContain("text-accent");
+    // Active button receives glass bg styling
+    expect(chatBtn?.className).toContain("bg-white");
   });
 });

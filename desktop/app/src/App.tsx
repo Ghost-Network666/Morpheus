@@ -1,85 +1,123 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { TitleBar } from "./components/TitleBar";
 import { Sidebar, type View } from "./components/Sidebar";
-import { ChatPage } from "./pages/ChatPage";
-import { TerminalPage } from "./pages/TerminalPage";
-import { SshPage } from "./pages/SshPage";
-import { ResearchPage } from "./pages/ResearchPage";
-import { RagPage } from "./pages/RagPage";
-import { NotesPage } from "./pages/NotesPage";
-import { TasksPage } from "./pages/TasksPage";
-import { CalendarPage } from "./pages/CalendarPage";
-import { EmailPage } from "./pages/EmailPage";
-import { DocumentsPage } from "./pages/DocumentsPage";
-import { ObsidianPage } from "./pages/ObsidianPage";
-import { VaultPage } from "./pages/VaultPage";
-import { CookbookPage } from "./pages/CookbookPage";
-import { SettingsPage } from "./pages/SettingsPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { useUIStore, applyTheme } from "./store/useUIStore";
+import { useFeatureStore } from "./store/useFeatureStore";
 import { api } from "./lib/api";
 import type { SystemInfo } from "./types";
 
+// Lazy-load heavy pages to keep initial bundle smaller
+const ChatPage      = lazy(() => import("./pages/ChatPage").then((m) => ({ default: m.ChatPage })));
+const TerminalPage  = lazy(() => import("./pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
+const SettingsPage  = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
+const ResearchPage  = lazy(() => import("./pages/ResearchPage").then((m) => ({ default: m.ResearchPage })));
+const RagPage       = lazy(() => import("./pages/RagPage").then((m) => ({ default: m.RagPage })));
+
+// Lighter pages loaded eagerly
+import { SshPage }       from "./pages/SshPage";
+import { NotesPage }     from "./pages/NotesPage";
+import { TasksPage }     from "./pages/TasksPage";
+import { CalendarPage }  from "./pages/CalendarPage";
+import { EmailPage }     from "./pages/EmailPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
+import { ObsidianPage }  from "./pages/ObsidianPage";
+import { VaultPage }     from "./pages/VaultPage";
+import { CookbookPage }  from "./pages/CookbookPage";
+
+function PageFallback() {
+  return (
+    <div className="flex flex-1 items-center justify-center">
+      <div className="skeleton h-4 w-24 rounded" />
+    </div>
+  );
+}
+
 export function App() {
-  const [view, setView] = useState<View>("chat");
+  const [view,       setView]       = useState<View>("chat");
   const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
+  const [initError,  setInitError]  = useState<string | null>(null);
+
+  const { theme, sidebarCollapsed, toggleSidebar, setSidebarCollapsed } = useUIStore();
+  const { modules, setModules } = useFeatureStore();
+
+  // Apply persisted theme on mount
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     api.systemInfo()
-      .then(setSystemInfo)
+      .then((info) => {
+        setSystemInfo(info);
+        // Sync feature store from backend
+        if (info.modules) {
+          const mods: Record<string, boolean> = {};
+          for (const [k, v] of Object.entries(info.modules)) {
+            mods[k] = v !== false;
+          }
+          setModules(mods);
+        }
+      })
       .catch((e) => setInitError(String(e)));
   }, []);
 
   useEffect(() => {
-    const handler = (e: Event) => {
-      setView("terminal");
-    };
+    const handler = () => setView("terminal");
     window.addEventListener("open-ssh-terminal", handler);
     return () => window.removeEventListener("open-ssh-terminal", handler);
   }, []);
 
+  // Build systemInfo proxy from Zustand modules so sidebar reacts to toggles
+  const effectiveSystemInfo: SystemInfo | null = systemInfo
+    ? { ...systemInfo, modules: { ...systemInfo.modules, ...modules } }
+    : null;
+
   return (
     <div className="flex h-screen flex-col bg-bg text-text select-none overflow-hidden">
       <TitleBar systemInfo={systemInfo} />
+
       <div className="flex min-h-0 flex-1">
-        <Sidebar
-          active={view}
-          onSelect={setView}
-          systemInfo={systemInfo}
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
-        />
+        <ErrorBoundary name="Sidebar">
+          <Sidebar
+            active={view}
+            onSelect={setView}
+            systemInfo={effectiveSystemInfo}
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebar}
+          />
+        </ErrorBoundary>
+
         <main className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
-          {initError && view !== "settings" && (
+          {initError && view !== "settings" ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
               <p className="text-sm font-medium text-text">Could not connect to backend</p>
               <p className="text-xs text-muted max-w-xs">{initError}</p>
               <button
                 onClick={() => setView("settings")}
-                className="rounded-md bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent/90"
+                className="rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white hover:bg-accent/90 transition-colors"
               >
                 Open Settings
               </button>
             </div>
-          )}
-          {(!initError || view === "settings") && (
-            <>
-              {view === "chat"        && <ChatPage systemInfo={systemInfo} />}
-              {view === "terminal"    && <TerminalPage />}
-              {view === "ssh"         && <SshPage />}
-              {view === "research"    && <ResearchPage />}
-              {view === "rag"         && <RagPage />}
-              {view === "notes"       && <NotesPage />}
-              {view === "tasks"       && <TasksPage />}
-              {view === "calendar"    && <CalendarPage />}
-              {view === "email"       && <EmailPage />}
-              {view === "documents"   && <DocumentsPage />}
-              {view === "obsidian"    && <ObsidianPage />}
-              {view === "vault"       && <VaultPage />}
-              {view === "cookbook"    && <CookbookPage />}
+          ) : (
+            <Suspense fallback={<PageFallback />}>
+              {view === "chat"        && <ErrorBoundary name="Chat"><ChatPage systemInfo={systemInfo} /></ErrorBoundary>}
+              {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage /></ErrorBoundary>}
+              {view === "ssh"         && <ErrorBoundary name="SSH"><SshPage /></ErrorBoundary>}
+              {view === "research"    && <ErrorBoundary name="Research"><ResearchPage /></ErrorBoundary>}
+              {view === "rag"         && <ErrorBoundary name="Memory"><RagPage /></ErrorBoundary>}
+              {view === "notes"       && <ErrorBoundary name="Notes"><NotesPage /></ErrorBoundary>}
+              {view === "tasks"       && <ErrorBoundary name="Tasks"><TasksPage /></ErrorBoundary>}
+              {view === "calendar"    && <ErrorBoundary name="Calendar"><CalendarPage /></ErrorBoundary>}
+              {view === "email"       && <ErrorBoundary name="Email"><EmailPage /></ErrorBoundary>}
+              {view === "documents"   && <ErrorBoundary name="Documents"><DocumentsPage /></ErrorBoundary>}
+              {view === "obsidian"    && <ErrorBoundary name="Obsidian"><ObsidianPage /></ErrorBoundary>}
+              {view === "vault"       && <ErrorBoundary name="Vault"><VaultPage /></ErrorBoundary>}
+              {view === "cookbook"    && <ErrorBoundary name="Cookbook"><CookbookPage /></ErrorBoundary>}
               {view === "connections" && <ConnectionsView />}
-              {view === "settings"    && <SettingsPage />}
-            </>
+              {view === "settings"    && <ErrorBoundary name="Settings"><SettingsPage /></ErrorBoundary>}
+            </Suspense>
           )}
         </main>
       </div>
@@ -90,7 +128,7 @@ export function App() {
 function ConnectionsView() {
   return (
     <div className="flex flex-1 flex-col">
-      <div className="border-b border-border bg-panel/60 px-6 py-3">
+      <div className="border-b px-6 py-3" style={{ borderColor: "var(--glass-border)" }}>
         <h1 className="text-sm font-semibold text-text">Connections</h1>
       </div>
       <div className="flex flex-1 items-center justify-center text-muted">

@@ -1,8 +1,9 @@
 import {
   MessageSquare, Terminal, Globe, Brain, FileText, ListTodo,
   Calendar, Mail, Folder, Diamond, Shield, BookOpen, Link2,
-  Settings, Server, ChevronLeft, ChevronRight,
+  Settings, Server, ChevronLeft, ChevronRight, Bot,
 } from "lucide-react";
+import { Tooltip } from "./ui/Tooltip";
 import type { SystemInfo } from "../types";
 
 export type View =
@@ -15,23 +16,24 @@ interface NavItem {
   label: string;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   moduleKey?: string;
+  group?: "primary" | "knowledge" | "system";
 }
 
-const MAIN_ITEMS: NavItem[] = [
-  { id: "chat",        label: "Chat",       Icon: MessageSquare },
-  { id: "terminal",    label: "Terminal",   Icon: Terminal,    moduleKey: "terminal" },
-  { id: "ssh",         label: "SSH",        Icon: Server,      moduleKey: "ssh" },
-  { id: "research",    label: "Research",   Icon: Globe,       moduleKey: "research" },
-  { id: "rag",         label: "Memory",     Icon: Brain,       moduleKey: "rag" },
-  { id: "notes",       label: "Notes",      Icon: FileText,    moduleKey: "notes" },
-  { id: "tasks",       label: "Tasks",      Icon: ListTodo,    moduleKey: "tasks" },
-  { id: "calendar",    label: "Calendar",   Icon: Calendar,    moduleKey: "calendar" },
-  { id: "email",       label: "Email",      Icon: Mail,        moduleKey: "email" },
-  { id: "documents",   label: "Documents",  Icon: Folder,      moduleKey: "documents" },
-  { id: "obsidian",    label: "Obsidian",   Icon: Diamond,     moduleKey: "obsidian" },
-  { id: "vault",       label: "Vault",      Icon: Shield },
-  { id: "cookbook",    label: "Cookbook",   Icon: BookOpen,    moduleKey: "cookbook" },
-  { id: "connections", label: "Connect",    Icon: Link2,       moduleKey: "connections" },
+const NAV_ITEMS: NavItem[] = [
+  { id: "chat",        label: "Chat",       Icon: MessageSquare, group: "primary" },
+  { id: "terminal",    label: "Terminal",   Icon: Terminal,    moduleKey: "terminal",    group: "primary" },
+  { id: "ssh",         label: "SSH",        Icon: Server,      moduleKey: "ssh",         group: "primary" },
+  { id: "notes",       label: "Notes",      Icon: FileText,    moduleKey: "notes",       group: "primary" },
+  { id: "tasks",       label: "Tasks",      Icon: ListTodo,    moduleKey: "tasks",       group: "primary" },
+  { id: "calendar",    label: "Calendar",   Icon: Calendar,    moduleKey: "calendar",    group: "primary" },
+  { id: "research",    label: "Research",   Icon: Globe,       moduleKey: "research",    group: "knowledge" },
+  { id: "rag",         label: "Memory",     Icon: Brain,       moduleKey: "rag",         group: "knowledge" },
+  { id: "documents",   label: "Documents",  Icon: Folder,      moduleKey: "documents",   group: "knowledge" },
+  { id: "email",       label: "Email",      Icon: Mail,        moduleKey: "email",       group: "knowledge" },
+  { id: "obsidian",    label: "Obsidian",   Icon: Diamond,     moduleKey: "obsidian",    group: "knowledge" },
+  { id: "vault",       label: "Vault",      Icon: Shield,                                group: "system" },
+  { id: "cookbook",    label: "Cookbook",   Icon: BookOpen,    moduleKey: "cookbook",    group: "system" },
+  { id: "connections", label: "Connect",    Icon: Link2,       moduleKey: "connections", group: "system" },
 ];
 
 interface SidebarProps {
@@ -50,28 +52,33 @@ export function Sidebar({ active, onSelect, systemInfo, collapsed, onToggleColla
     return modules[item.moduleKey] !== false;
   };
 
-  const visibleItems = MAIN_ITEMS.filter(isEnabled);
+  const grouped = {
+    primary:   NAV_ITEMS.filter((i) => i.group === "primary"   && isEnabled(i)),
+    knowledge: NAV_ITEMS.filter((i) => i.group === "knowledge" && isEnabled(i)),
+    system:    NAV_ITEMS.filter((i) => i.group === "system"    && isEnabled(i)),
+  };
 
   return (
     <div
-      className={`flex shrink-0 flex-col border-r border-border bg-panel transition-all duration-200 ${
-        collapsed ? "w-14" : "w-48"
-      }`}
+      className={`
+        relative flex shrink-0 flex-col
+        glass border-r
+        transition-all duration-200 ease-in-out
+        ${collapsed ? "w-[56px]" : "w-[220px]"}
+      `}
     >
-      <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto py-2 px-1.5">
-        {visibleItems.map((item) => (
-          <NavButton
-            key={item.id}
-            item={item}
-            active={active === item.id}
-            collapsed={collapsed}
-            onClick={() => onSelect(item.id)}
-          />
-        ))}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto py-2">
+        <NavGroup items={grouped.primary}   active={active} collapsed={collapsed} onSelect={onSelect} />
+        {grouped.knowledge.length > 0 && (
+          <NavGroup items={grouped.knowledge} active={active} collapsed={collapsed} onSelect={onSelect} label="Knowledge" />
+        )}
+        {grouped.system.length > 0 && (
+          <NavGroup items={grouped.system}    active={active} collapsed={collapsed} onSelect={onSelect} />
+        )}
       </div>
 
-      <div className="border-t border-border px-1.5 py-2 flex flex-col gap-0.5">
-        <NavButton
+      <div className="border-t py-1.5" style={{ borderColor: "var(--glass-border)" }}>
+        <NavBtn
           item={{ id: "settings", label: "Settings", Icon: Settings }}
           active={active === "settings"}
           collapsed={collapsed}
@@ -79,12 +86,12 @@ export function Sidebar({ active, onSelect, systemInfo, collapsed, onToggleColla
         />
         <button
           onClick={onToggleCollapse}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-xs text-muted hover:bg-white/5 hover:text-text transition-colors"
+          title={collapsed ? "Expand" : "Collapse"}
+          className="flex h-8 w-full items-center gap-2 px-3 text-xs text-muted hover:text-text transition-colors"
         >
           {collapsed
-            ? <ChevronRight size={14} />
-            : <><ChevronLeft size={14} /><span>Collapse</span></>
+            ? <ChevronRight size={13} className="mx-auto" />
+            : <><ChevronLeft size={13} /><span>Collapse</span></>
           }
         </button>
       </div>
@@ -92,7 +99,37 @@ export function Sidebar({ active, onSelect, systemInfo, collapsed, onToggleColla
   );
 }
 
-function NavButton({
+function NavGroup({
+  items, active, collapsed, onSelect, label,
+}: {
+  items: NavItem[];
+  active: View;
+  collapsed: boolean;
+  onSelect: (v: View) => void;
+  label?: string;
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="px-1.5 py-1">
+      {label && !collapsed && (
+        <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted/50">
+          {label}
+        </p>
+      )}
+      {items.map((item) => (
+        <NavBtn
+          key={item.id}
+          item={item}
+          active={active === item.id}
+          collapsed={collapsed}
+          onClick={() => onSelect(item.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function NavBtn({
   item, active, collapsed, onClick,
 }: {
   item: NavItem;
@@ -100,18 +137,30 @@ function NavButton({
   collapsed: boolean;
   onClick: () => void;
 }) {
-  return (
+  const button = (
     <button
       onClick={onClick}
-      title={collapsed ? item.label : undefined}
-      className={`flex h-8 w-full items-center gap-2.5 rounded-md px-2 text-xs font-medium transition-colors ${
-        active
-          ? "bg-accent/15 text-accent"
-          : "text-muted hover:bg-white/5 hover:text-text"
-      }`}
+      className={`
+        relative flex h-8 w-full items-center gap-2.5 rounded-lg px-2
+        text-xs font-medium transition-all duration-150
+        ${active
+          ? "bg-white/[0.08] text-text active-glow"
+          : "text-muted hover:bg-white/[0.05] hover:text-text"
+        }
+      `}
     >
-      <item.Icon size={15} className="shrink-0" />
-      {!collapsed && <span className="truncate">{item.label}</span>}
+      <item.Icon
+        size={15}
+        className={`shrink-0 ${active ? "text-accent" : ""}`}
+      />
+      {!collapsed && (
+        <span className="truncate">{item.label}</span>
+      )}
     </button>
   );
+
+  if (collapsed) {
+    return <Tooltip content={item.label} side="right">{button}</Tooltip>;
+  }
+  return button;
 }

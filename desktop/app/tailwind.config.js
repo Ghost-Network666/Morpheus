@@ -4,12 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: "#0f0f17",
-        panel: "#161620",
-        border: "#262633",
-        accent: "#7c5cff",
-        text: "#e4e4ec",
-        muted: "#8b8b9e",
+        bg:     "rgb(var(--color-bg-rgb) / <alpha-value>)",
+        panel:  "rgb(var(--color-panel-rgb) / <alpha-value>)",
+        border: "rgb(var(--color-border-rgb) / <alpha-value>)",
+        accent: "rgb(var(--color-accent-rgb) / <alpha-value>)",
+        text:   "rgb(var(--color-text-rgb) / <alpha-value>)",
+        muted:  "rgb(var(--color-muted-rgb) / <alpha-value>)",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
     },
   },
