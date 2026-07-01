@@ -20,13 +20,6 @@ Co-Authored-By: Ghostnetwork <ghost-network666@users.noreply.github.com>
 
 Never use "Claude", "Anthropic", or any AI name in commit messages, PR bodies, code comments, or any file pushed to the repo.
 
-## Version Policy
-
-- **The app version is permanently `1.0.0`. Never change it — not for bug fixes, not for any reason.**
-- Every fix gets committed to `main` and the CI re-releases under the same `v1.0.0` tag, overwriting the previous binaries.
-- Do not bump the version. Do not create a new tag. Do not suggest incrementing the version number.
-- If electron-updater ever needs a version bump to detect an update, that is not a valid reason — keep version at `1.0.0` regardless.
-
 ## Style
 
 - No team conventions needed — keep things simple and direct.
