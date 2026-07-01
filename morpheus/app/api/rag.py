@@ -84,6 +84,34 @@ async def query_documents(request: Request, user: User = Depends(require_user)):
     return {"results": results}
 
 
+# --- Aliases for frontend compatibility ---
+@router.post("/search")
+async def search_alias(request: Request, user: User = Depends(require_user)):
+    return await query_documents(request, user)
+
+@router.post("/upload")
+async def upload_alias(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+):
+    return await upload_document(file, db, user)
+
+
+# --- Chunk metadata for premium RAG Sandbox ---
+@router.get("/documents/{doc_id}/chunks")
+async def list_document_chunks(doc_id: str, user: User = Depends(require_user)):
+    # Chunks are filtered at Chroma level by user_id in metadata during indexing
+    chunks = await rag_engine.list_chunks(doc_id)
+    return {"chunks": chunks}
+
+
+@router.delete("/chunks/{chunk_id}")
+async def delete_chunk_endpoint(chunk_id: str, user: User = Depends(require_user)):
+    ok = await rag_engine.delete_chunk(chunk_id)
+    return {"ok": ok}
+
+
 def _doc_out(d: Document) -> dict:
     return {
         "id": d.id,
