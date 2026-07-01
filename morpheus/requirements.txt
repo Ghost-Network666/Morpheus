@@ -49,7 +49,7 @@ icalendar==7.2.0
 caldav==3.2.1
 
 # Encryption
-cryptography==44.0.3
+cryptography==48.0.1
 
 # Image processing
 Pillow==12.2.0
