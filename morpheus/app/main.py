@@ -2,7 +2,6 @@ import asyncio
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings, load_overrides
@@ -173,8 +172,6 @@ def create_app() -> FastAPI:
                 "obsidian": settings.module_obsidian,
             },
         }
-
-    # NOTE: Web UI removed — backend exposes API endpoints only.
 
     return app
 

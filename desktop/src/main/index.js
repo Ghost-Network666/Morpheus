@@ -176,11 +176,6 @@ function _buildAppMenu() {
             _openConnect();
           },
         },
-        {
-          label: "Open in Browser",
-          accelerator: isMac ? "Cmd+Shift+B" : "Ctrl+Shift+B",
-          click: () => activeConn && shell.openExternal(activeConn.url),
-        },
       ],
     },
     {
@@ -371,11 +366,6 @@ function _refreshTrayMenu() {
         activeConn = null;
         _openConnect();
       },
-    },
-    {
-      label: "Open in Browser",
-      click: () => activeConn && shell.openExternal(activeConn.url),
-      enabled: !!activeConn,
     },
     { type: "separator" },
     { label: "Check for Updates…", click: _checkForUpdatesManually },

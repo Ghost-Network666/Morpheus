@@ -2,13 +2,11 @@
 
 A privacy-first AI workspace that runs entirely on your own hardware. No accounts. No cloud. No data leaves your machine.
 
-Chat with local or cloud AI, manage notes, tasks, and calendar, run a full terminal, search the web, and more — all from a single self-hosted app.
+Chat with local or cloud AI, manage notes, tasks, and calendar, run a full terminal, search the web, and more — all from a native desktop app.
 
 ---
 
 ## Download
-
-Get the desktop app for your platform. No account needed — just download and run.
 
 | Platform | Download |
 |---|---|
@@ -20,20 +18,22 @@ Get the desktop app for your platform. No account needed — just download and r
 > **macOS note:** The app is not code-signed. On first launch, right-click → Open → Open to bypass Gatekeeper.
 >
 > **Windows note:** SmartScreen may warn about an unknown publisher — click "More info → Run anyway".
->
-> **Linux servers:** no download or ISO needed. Install from the Windows/macOS app's connect screen via **Remote Install** (SSH — password, key, or agent), or manually with the [Server Setup](#server-setup) steps below.
 
 All releases: [github.com/Ghost-Network666/Morpheus/releases](https://github.com/Ghost-Network666/Morpheus/releases)
 
+The installer bundles a complete Python runtime — no Python installation required on your machine.
+
 ---
 
-## Two Ways to Run
+## Getting Started
 
-### Desktop App (recommended)
-Download above. On first launch, choose **Local** (runs Python on your machine) or **Remote** (connects to your server). Updates automatically.
-
-### Self-Hosted Server (headless / Docker)
-Run Morpheus on a server and connect from the desktop app or any browser. See [Server Setup](#server-setup) below.
+1. Download the installer for your platform above.
+2. Run the installer (Windows) or open the DMG and drag to Applications (macOS).
+3. On first launch, choose **Local** to run the AI backend on your machine, or **Remote** to connect to a Morpheus instance running on another machine via SSH.
+4. For local mode, [install Ollama](https://ollama.com) and pull a model:
+   ```bash
+   ollama pull llama3.2:3b
+   ```
 
 ---
 
@@ -59,19 +59,13 @@ Run Morpheus on a server and connect from the desktop app or any browser. See [S
 
 ---
 
-## Server Setup
+## Remote Connections
 
-### Linux / Ubuntu
+Morpheus supports connecting the desktop app to a backend running on another machine (Linux server, NAS, homelab). On the connect screen, choose **Remote** and enter the server address.
 
-One-command install (Ubuntu/Debian — installs Python, Ollama, clones to `~/morpheus`, and sets up a systemd service running as your user):
+To install the Morpheus backend on a Linux server from within the app, use **Remote Install** on the connect screen — it connects over SSH and sets up everything automatically.
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Ghost-Network666/Morpheus/main/scripts/easy-server-install.sh | bash
-```
-
-This is also what the desktop app's **Remote Install** (connect screen → SSH) runs on your behalf.
-
-Or set it up manually:
+Or install manually on the server:
 
 ```bash
 git clone https://github.com/Ghost-Network666/Morpheus morpheus
@@ -81,68 +75,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 7860
 ```
 
-### Docker Compose
+Then open the desktop app, choose Remote, and enter `http://your-server:7860`.
 
-```bash
-git clone https://github.com/Ghost-Network666/Morpheus morpheus
-cd morpheus/morpheus/docker
-docker compose up -d
-# Open http://your-server:7860
-```
-
-### macOS / Windows (server mode)
-
-```bash
-git clone https://github.com/Ghost-Network666/Morpheus morpheus
-cd morpheus/morpheus
-
-# macOS
-bash scripts/start-macos.sh
-
-# Windows
-.\scripts\launch-windows.ps1
-```
-
-### Run as a systemd service
-
-The bundled unit file expects the app at `/opt/morpheus`, run by a dedicated `morpheus` system user:
-
-```bash
-sudo useradd -r -s /usr/sbin/nologin morpheus
-sudo git clone https://github.com/Ghost-Network666/Morpheus /opt/morpheus
-cd /opt/morpheus/morpheus
-sudo python3 -m venv venv
-sudo ./venv/bin/pip install -r requirements.txt
-sudo cp .env.example .env   # edit as needed
-sudo chown -R morpheus:morpheus /opt/morpheus
-
-sudo cp scripts/morpheus.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now morpheus
-```
-
-For a simpler setup that runs as your own user instead of a dedicated `morpheus` account, use the [one-command installer](#linux--ubuntu) above — it generates a matching systemd unit automatically.
-
----
-
-## Secure Remote Access
-
-Install [Tailscale](https://tailscale.com) on your server. Morpheus auto-detects the Tailscale MagicDNS URL:
-
-```
-Tailscale URL: http://my-server.tail12345.ts.net:7860
-```
-
-Then open the desktop app and connect to that URL — no port forwarding, no VPN config.
+For zero-config secure access without port forwarding, install [Tailscale](https://tailscale.com) on your server and connect using the MagicDNS hostname (`http://my-server.tail12345.ts.net:7860`).
 
 ---
 
 ## Configuration
 
-Copy `.env.example` to `.env`:
+The backend reads settings from a `.env` file in the `morpheus/` directory (or from the in-app Settings panel):
 
 ```env
-APP_HOST=0.0.0.0        # expose on the network
+APP_HOST=127.0.0.1    # 0.0.0.0 to expose on the network for remote connections
 APP_PORT=7860
 OLLAMA_URL=http://localhost:11434
 DEFAULT_MODEL=llama3.2:3b
@@ -158,24 +102,12 @@ TAVILY_API_KEY=
 
 ---
 
-## Local Models via Ollama
-
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.2:3b
-
-# Windows — download from https://ollama.com
-```
-
----
-
 ## Architecture
 
 - **Backend**: FastAPI + SQLAlchemy (async SQLite) + Uvicorn
-- **Frontend**: Vanilla JS — no build step, served by FastAPI
-- **Desktop**: Electron 33 wrapping the backend; local or remote mode
-- **Terminal**: xterm.js ↔ WebSocket ↔ PTY (local or SSH via Paramiko)
+- **Frontend**: React + Vite + TypeScript + Tailwind, bundled inside Electron
+- **Desktop**: Electron 33 — UI loads from disk, API calls go to the local or remote backend
+- **Terminal**: xterm.js ↔ WebSocket ↔ PTY (local or SSH via asyncssh)
 - **Streaming**: Server-Sent Events for chat and agent output
 - **RAG**: ChromaDB + fastembed (ONNX — no external API required)
 - **Search**: DuckDuckGo → SearXNG → Brave → Tavily fallback chain
@@ -187,33 +119,28 @@ ollama pull llama3.2:3b
 - No accounts, no logins, no passwords
 - Zero telemetry — nothing is sent externally unless you configure a cloud AI provider
 - All data stored locally in SQLite; secrets encrypted with AES-256 (Fernet)
-- Access is controlled at the network level (Tailscale, LAN, reverse proxy)
+- For remote access, control is at the network level (Tailscale, LAN, reverse proxy)
 
 ---
 
 ## Building from Source
 
 ```bash
+# Install desktop and renderer dependencies
 cd desktop
 npm install
-npm run build:mac    # or build:win / build:linux
+cd app && npm install && cd ..
+
+# Build the React renderer
+cd app && npm run build && cd ..
+
+# Build the desktop app (bundles Python runtime automatically)
+npm run build:mac:arm64   # macOS Apple Silicon
+npm run build:mac:x64     # macOS Intel
+npm run build:win         # Windows
 ```
 
 Output goes to `desktop/dist/`.
-
-### Portable executable (no Electron)
-
-A lighter alternative that bundles the Python backend alone into a single tray-app executable, using the legacy web UI instead of the Electron renderer:
-
-```bash
-cd morpheus
-
-# Windows — outputs dist\Morpheus.exe
-.\scripts\build-windows-portable.ps1
-
-# macOS — outputs dist/Morpheus.app
-bash scripts/build-macos-app.sh
-```
 
 ---
 
