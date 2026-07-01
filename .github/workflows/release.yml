@@ -42,22 +42,27 @@ jobs:
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
 
-      # Delete any existing release + tag so we can republish with correct names.
-      # Safe to fail when the release does not exist yet.
-      - name: Create GitHub release
+      # Update the existing release (if any) or create a new one.
+      # Using edit-or-create avoids the 422 "tag already exists" error that
+      # occurs when the tag exists but we try to gh release create again.
+      - name: Create or update GitHub release
         if: steps.check.outputs.dry_run == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.ver.outputs.version }}"
-          gh release delete "v${VERSION}" --yes --delete-tag \
-            --repo ${{ github.repository }} 2>/dev/null || true
+          REPO="${{ github.repository }}"
+          # Try to update an existing release; fall back to creating one
+          gh release edit "v${VERSION}" \
+            --title "v${VERSION}" \
+            --latest \
+            --repo "$REPO" 2>/dev/null || \
           gh release create "v${VERSION}" \
             --title "v${VERSION}" \
             --notes "Desktop app — Windows (x64 installer + portable) and macOS (Intel x64 + Apple Silicon). Self-contained: bundles a Python runtime, no system Python required." \
             --latest \
             --target "$GITHUB_SHA" \
-            --repo ${{ github.repository }}
+            --repo "$REPO"
 
   # ── macOS (x64 then arm64 on the same runner) ────────────────────────────────
   build-mac:
