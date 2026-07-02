@@ -4,7 +4,7 @@ const path = require("path");
 const {
   isFirstLaunch, markIntroSeen,
   getConnections, getLastConnection,
-  saveRemoteConnection, setLastConnection, deleteConnection,
+  saveRemoteConnection, saveSshConnection, setLastConnection, deleteConnection,
   LOCAL_CONNECTION,
 } = require("./connections");
 const { startServer, stopServer } = require("./server");
@@ -22,6 +22,14 @@ let tray          = null;
 let activeConn    = null;
 let apiBase       = null;
 let _pendingWizardSettings = null;
+let activeTunnel  = null; // { close() } — live SSH tunnel handle, if the active connection is via SSH
+
+function _closeTunnel() {
+  if (activeTunnel) {
+    try { activeTunnel.close(); } catch (_) {}
+    activeTunnel = null;
+  }
+}
 
 // ── Auto-updater ──────────────────────────────────────────────────────────
 let _autoUpdater = null;
@@ -89,7 +97,7 @@ app.whenReady().then(async () => {
     _openWizard();
   } else {
     const last = getLastConnection();
-    if (last) {
+    if (last && last.type !== "ssh") {
       await _connect(last);
     } else {
       _openConnect();
@@ -106,7 +114,7 @@ app.on("activate", () => {
   else if (activeConn) _openMain(activeConn.url);
 });
 
-app.on("before-quit", () => stopServer());
+app.on("before-quit", () => { stopServer(); _closeTunnel(); });
 
 // ── Native app menu ─────────────────────────────────────────────────────
 function _buildAppMenu() {
@@ -162,6 +170,7 @@ function _buildAppMenu() {
             if (mainWindow) { mainWindow.close(); mainWindow = null; }
             _closeWindow("loading");
             stopServer();
+            _closeTunnel();
             activeConn = null;
             _openConnect();
           },
@@ -399,6 +408,7 @@ function _refreshTrayMenu() {
         if (mainWindow) { mainWindow.close(); mainWindow = null; }
         _closeWindow("loading");
         stopServer();
+        _closeTunnel();
         activeConn = null;
         _openConnect();
       },
@@ -412,6 +422,7 @@ function _refreshTrayMenu() {
 
 function _quit() {
   stopServer();
+  _closeTunnel();
   app.quit();
 }
 
@@ -451,6 +462,7 @@ ipcMain.on("go-to-connect", () => {
   if (mainWindow) { mainWindow.close(); mainWindow = null; }
   _closeWindow("loading");
   stopServer();
+  _closeTunnel();
   activeConn = null;
   _openConnect();
 });
@@ -523,6 +535,74 @@ ipcMain.handle("remote-install", (event, { host, port, username, password, authT
 ipcMain.handle("list-ssh-keys", () => {
   const { listSshKeys } = require("./remote-install");
   return listSshKeys();
+});
+
+// ── SSH-first remote connect flow ───────────────────────────────────────
+// 1. ssh-check-status: SSH in, see if Docker is available and if Morpheus is
+//    already reachable on the remote's loopback interface.
+// 2. ssh-docker-install: if not running, one-click install/start via Docker.
+// 3. ssh-open-tunnel: open a local SSH port-forward and hand back a
+//    127.0.0.1:<port> URL the renderer can point the app window at.
+ipcMain.handle("ssh-check-status", (_e, { sshOpts, remotePort }) => {
+  const { checkRemoteStatus } = require("./remote-install");
+  return new Promise((resolve) => {
+    checkRemoteStatus(sshOpts, remotePort || 7860, resolve);
+  });
+});
+
+ipcMain.handle("ssh-docker-install", (event, { sshOpts }) => {
+  const { dockerInstall } = require("./remote-install");
+  return new Promise((resolve) => {
+    dockerInstall(
+      sshOpts,
+      (msg) => {
+        if (!event.sender.isDestroyed()) event.sender.send("ssh-install-progress", msg);
+      },
+      (err) => resolve({ ok: !err, error: err || null }),
+    );
+  });
+});
+
+ipcMain.handle("ssh-open-tunnel", (_e, { sshOpts, remotePort }) => {
+  const { openTunnel } = require("./remote-install");
+  return new Promise((resolve) => {
+    _closeTunnel();
+    let settled = false;
+    openTunnel(
+      sshOpts,
+      remotePort || 7860,
+      (localPort, handle) => {
+        activeTunnel = handle;
+        settled = true;
+        resolve({ ok: true, url: `http://127.0.0.1:${localPort}` });
+      },
+      (error) => {
+        if (!settled) { settled = true; resolve({ ok: false, error }); }
+      },
+      () => {
+        if (activeTunnel) activeTunnel = null;
+        mainWindow?.webContents.send("ssh-tunnel-closed");
+      },
+    );
+  });
+});
+
+ipcMain.on("connect-ssh", (_e, { name, sshOpts, remotePort, url }) => {
+  const id = saveSshConnection({
+    name,
+    host: sshOpts.host,
+    port: sshOpts.port,
+    username: sshOpts.username,
+    authType: sshOpts.authType,
+    keyPath: sshOpts.keyPath,
+    remotePort,
+  });
+  setLastConnection(id);
+  const conn = { id, name, url, type: "remote" };
+  activeConn = conn;
+  _closeWindow("connect");
+  _closeWindow("loading");
+  _openMain(url);
 });
 
 // ── Setup wizard IPC ───────────────────────────────────────────────────────

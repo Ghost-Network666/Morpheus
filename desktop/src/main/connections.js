@@ -70,6 +70,29 @@ function saveRemoteConnection(name, url) {
   return id;
 }
 
+// Persists only non-secret SSH connection metadata (host/port/username/authType/keyPath).
+// Passwords and key passphrases are never written to disk — the user re-enters them
+// (or relies on an SSH agent / unencrypted key) each time the tunnel is (re-)established.
+function saveSshConnection({ name, host, port, username, authType, keyPath, remotePort }) {
+  const c = getConfig();
+  const existing = (c.connections || []).find(
+    x => x.type === "ssh" && x.host === host && x.username === username && x.port === port
+  );
+  const entry = {
+    id: existing ? existing.id : "ssh_" + Date.now(),
+    name, type: "ssh", host, port, username, authType,
+    keyPath: authType === "key" ? keyPath : undefined,
+    remotePort: remotePort || 7860,
+  };
+  if (existing) {
+    Object.assign(existing, entry);
+  } else {
+    c.connections = [...(c.connections || []), entry];
+  }
+  _write(c);
+  return entry.id;
+}
+
 function setLastConnection(id) {
   const c = getConfig();
   c.lastConnectionId = id;
@@ -90,6 +113,7 @@ module.exports = {
   getConnections,
   getLastConnection,
   saveRemoteConnection,
+  saveSshConnection,
   setLastConnection,
   deleteConnection,
   LOCAL_CONNECTION,

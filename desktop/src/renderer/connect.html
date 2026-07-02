@@ -156,8 +156,6 @@
   }
   .btn-install-toggle:hover { background: rgba(203,166,247,.1); }
 
-  .ssh-form { display: none; margin-top: 12px; }
-  .ssh-form.visible { display: block; }
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
@@ -239,70 +237,69 @@
       <label for="inp-name">Connection name</label>
       <input type="text" id="inp-name" placeholder="Home Server">
     </div>
-    <div class="field">
-      <label for="inp-url">Server IP or Hostname</label>
-      <div class="test-row">
-        <input type="text" id="inp-url" placeholder="192.168.1.100 or hostname:7860" style="flex:1">
-        <button class="btn-test" id="test-btn" onclick="testConnection()">Test</button>
+    <div class="field-row">
+      <div class="field" style="flex:2">
+        <label for="ssh-host">Server IP or Hostname</label>
+        <input type="text" id="ssh-host" placeholder="192.168.1.100">
       </div>
-      <div class="test-row" style="margin-top:2px">
-        <div class="status-dot" id="test-dot"></div>
-        <span class="status-text" id="test-text">Enter IP or hostname above</span>
+      <div class="field" style="max-width:80px">
+        <label for="ssh-port">SSH Port</label>
+        <input type="text" id="ssh-port" value="22">
       </div>
     </div>
-  </div>
-
-  <!-- SSH remote install (shown when test fails on remote mode) -->
-  <div class="install-hint" id="install-hint">
-    <div class="install-hint-row">
-      <span class="install-hint-text">Morpheus not installed on that server?</span>
-      <button class="btn-install-toggle" onclick="toggleSshForm()">Install on Server</button>
+    <div class="field-row">
+      <div class="field">
+        <label for="ssh-user">SSH Username</label>
+        <input type="text" id="ssh-user" placeholder="ubuntu" value="ubuntu">
+      </div>
+      <div class="field" style="max-width:100px">
+        <label for="ssh-app-port">App Port</label>
+        <input type="text" id="ssh-app-port" value="7860">
+      </div>
     </div>
-    <div class="ssh-form" id="ssh-form">
-      <div class="field-row" style="margin-top:12px">
-        <div class="field">
-          <label for="ssh-user">SSH Username</label>
-          <input type="text" id="ssh-user" placeholder="ubuntu" value="ubuntu">
-        </div>
-        <div class="field" style="max-width:80px">
-          <label for="ssh-port">Port</label>
-          <input type="text" id="ssh-port" value="22">
-        </div>
-      </div>
-      <div class="auth-toggle" id="auth-toggle">
-        <button type="button" class="active" data-auth="password" onclick="setSshAuthMethod('password')">Password</button>
-        <button type="button" data-auth="key" onclick="setSshAuthMethod('key')">SSH Key</button>
-        <button type="button" data-auth="agent" onclick="setSshAuthMethod('agent')">SSH Agent</button>
-      </div>
 
-      <div class="auth-pane visible" id="auth-pane-password">
-        <div class="field">
-          <label for="ssh-pass">SSH Password</label>
-          <input type="password" id="ssh-pass" placeholder="Password">
+    <div class="auth-toggle" id="auth-toggle">
+      <button type="button" class="active" data-auth="password" onclick="setSshAuthMethod('password')">Password</button>
+      <button type="button" data-auth="key" onclick="setSshAuthMethod('key')">SSH Key</button>
+      <button type="button" data-auth="agent" onclick="setSshAuthMethod('agent')">SSH Agent</button>
+    </div>
+
+    <div class="auth-pane visible" id="auth-pane-password">
+      <div class="field">
+        <label for="ssh-pass">SSH Password</label>
+        <input type="password" id="ssh-pass" placeholder="Password">
+      </div>
+    </div>
+
+    <div class="auth-pane" id="auth-pane-key">
+      <div class="field">
+        <label for="ssh-key-select">Private Key</label>
+        <div class="key-row">
+          <select id="ssh-key-select"></select>
+          <button type="button" class="btn-browse" onclick="browseForKey()">Browse…</button>
         </div>
       </div>
-
-      <div class="auth-pane" id="auth-pane-key">
-        <div class="field">
-          <label for="ssh-key-select">Private Key</label>
-          <div class="key-row">
-            <select id="ssh-key-select"></select>
-            <button type="button" class="btn-browse" onclick="browseForKey()">Browse…</button>
-          </div>
-        </div>
-        <div class="field">
-          <label for="ssh-key-pass">Passphrase (if encrypted)</label>
-          <input type="password" id="ssh-key-pass" placeholder="Leave blank if none">
-        </div>
+      <div class="field">
+        <label for="ssh-key-pass">Passphrase (if encrypted)</label>
+        <input type="password" id="ssh-key-pass" placeholder="Leave blank if none">
       </div>
+    </div>
 
-      <div class="auth-pane" id="auth-pane-agent">
-        <div class="auth-hint">Uses keys loaded in your running SSH agent (ssh-agent / Pageant). No password or key file needed here.</div>
+    <div class="auth-pane" id="auth-pane-agent">
+      <div class="auth-hint">Uses keys loaded in your running SSH agent (ssh-agent / Pageant). No password or key file needed here.</div>
+    </div>
+
+    <div class="test-row" style="margin-top:4px">
+      <div class="status-dot" id="test-dot"></div>
+      <span class="status-text" id="test-text">Enter server details above and connect</span>
+    </div>
+
+    <!-- Shown when SSH reaches the server but Morpheus isn't running there yet -->
+    <div class="install-hint" id="install-hint">
+      <div class="install-hint-row">
+        <span class="install-hint-text" id="install-hint-text">Morpheus isn't running on that server yet.</span>
+        <button class="btn-install-toggle" id="install-btn" onclick="doDockerInstall()">Install with Docker</button>
       </div>
-
-      <button class="btn btn-primary" id="ssh-install-btn" onclick="doRemoteInstall()" style="margin-top:4px">
-        Install Morpheus on Server
-      </button>
       <div class="progress-wrap" id="progress-wrap">
         <div class="progress-log" id="progress-log"></div>
       </div>
@@ -322,22 +319,22 @@
 
 <script>
   let mode = "local";
-  let testPassed = false;
   let connections = [];
+  let sshAuthType = "password";
+  let sshKeys = [];
+  let connecting = false;
 
   window.electronAPI?.getVersion().then(v => {
     if (v) document.getElementById("ver").textContent = "v" + v;
   });
 
+  window.electronAPI?.listSshKeys().then(keys => { sshKeys = keys || []; _renderKeySelect(); });
+
   function selectMode(m) {
     mode = m;
-    testPassed = false;
     document.getElementById("card-local").classList.toggle("selected", m === "local");
     document.getElementById("card-remote").classList.toggle("selected", m === "remote");
     document.getElementById("remote-form").classList.toggle("visible", m === "remote");
-    if (m === "local") {
-      document.getElementById("install-hint").classList.remove("visible");
-    }
     _updateConnectBtn();
   }
 
@@ -348,84 +345,32 @@
       btn.disabled = false;
     } else {
       btn.textContent = "Connect to Server";
-      btn.disabled = !testPassed;
+      btn.disabled = connecting;
     }
   }
 
-  function _buildUrl(raw) {
-    raw = raw.trim();
-    if (!raw) return "";
-    if (/^https?:\/\//i.test(raw)) return raw.replace(/\/$/, "");
-    if (/:\d+$/.test(raw)) return "http://" + raw;
-    return "http://" + raw + ":7860";
+  function _setStatus(text, kind) {
+    const dot = document.getElementById("test-dot");
+    const txt = document.getElementById("test-text");
+    dot.className = "status-dot" + (kind ? ` ${kind}` : "");
+    txt.className = "status-text" + (kind && kind !== "spin" ? ` ${kind}` : "");
+    txt.textContent = text;
   }
 
-  async function testConnection() {
-    const url = _buildUrl(document.getElementById("inp-url").value);
-    if (!url) return;
-    const dot  = document.getElementById("test-dot");
-    const txt  = document.getElementById("test-text");
-    const btn  = document.getElementById("test-btn");
-    dot.className = "status-dot spin";
-    txt.textContent = "Testing…";
-    txt.className = "status-text";
-    btn.disabled = true;
-    testPassed = false;
-    document.getElementById("install-hint").classList.remove("visible");
-    _updateConnectBtn();
-
-    try {
-      const res = await window.electronAPI.testRemoteUrl(url);
-      if (res.ok) {
-        dot.className = "status-dot ok";
-        const ver = res.data?.version ? ` (v${res.data.version})` : "";
-        txt.textContent = `Connected successfully${ver}`;
-        txt.className = "status-text ok";
-        testPassed = true;
-        document.getElementById("install-hint").classList.remove("visible");
-      } else {
-        dot.className = "status-dot err";
-        txt.textContent = res.error || "Connection failed";
-        txt.className = "status-text err";
-        document.getElementById("install-hint").classList.add("visible");
-        _prefillSshHost(url);
-      }
-    } catch (e) {
-      dot.className = "status-dot err";
-      txt.textContent = "Unexpected error";
-      txt.className = "status-text err";
-      document.getElementById("install-hint").classList.add("visible");
-      _prefillSshHost(_buildUrl(document.getElementById("inp-url").value));
-    } finally {
-      btn.disabled = false;
-      _updateConnectBtn();
+  function _sshOpts() {
+    const opts = {
+      host: document.getElementById("ssh-host").value.trim(),
+      port: document.getElementById("ssh-port").value.trim() || "22",
+      username: document.getElementById("ssh-user").value.trim() || "ubuntu",
+      authType: sshAuthType,
+    };
+    if (sshAuthType === "password") {
+      opts.password = document.getElementById("ssh-pass").value;
+    } else if (sshAuthType === "key") {
+      opts.keyPath = document.getElementById("ssh-key-select").value;
+      opts.passphrase = document.getElementById("ssh-key-pass").value;
     }
-  }
-
-  function _prefillSshHost(url) {
-    try {
-      const h = new URL(url).hostname;
-      if (!document.getElementById("ssh-user").dataset.edited) {
-        document.getElementById("ssh-user").value = "ubuntu";
-      }
-    } catch (_) {}
-  }
-
-  let sshAuthType = "password";
-  let sshKeys = [];
-
-  function toggleSshForm() {
-    const form = document.getElementById("ssh-form");
-    const wasVisible = form.classList.contains("visible");
-    form.classList.toggle("visible");
-    if (!wasVisible) _loadSshKeys();
-  }
-
-  async function _loadSshKeys() {
-    const select = document.getElementById("ssh-key-select");
-    select.innerHTML = `<option value="">Loading keys…</option>`;
-    sshKeys = (await window.electronAPI.listSshKeys()) || [];
-    _renderKeySelect();
+    return opts;
   }
 
   function _renderKeySelect() {
@@ -464,68 +409,91 @@
     });
   }
 
-  async function doRemoteInstall() {
-    const url = _buildUrl(document.getElementById("inp-url").value);
-    let host = "";
-    try { host = new URL(url).hostname; } catch (_) { host = url; }
-    const port     = document.getElementById("ssh-port").value.trim() || "22";
-    const username = document.getElementById("ssh-user").value.trim() || "ubuntu";
-
-    const payload = { host, port, username, authType: sshAuthType };
-    if (sshAuthType === "password") {
-      payload.password = document.getElementById("ssh-pass").value;
-    } else if (sshAuthType === "key") {
-      payload.keyPath    = document.getElementById("ssh-key-select").value;
-      payload.passphrase = document.getElementById("ssh-key-pass").value;
-      if (!payload.keyPath) {
-        alert("Select or browse for a private key first.");
-        return;
-      }
-    }
-
-    const logEl  = document.getElementById("progress-log");
-    const wrap   = document.getElementById("progress-wrap");
-    const btn    = document.getElementById("ssh-install-btn");
+  async function doDockerInstall() {
+    const sshOpts = _sshOpts();
+    const logEl = document.getElementById("progress-log");
+    const wrap  = document.getElementById("progress-wrap");
+    const btn   = document.getElementById("install-btn");
 
     logEl.textContent = "";
     wrap.classList.add("visible");
     btn.disabled = true;
     btn.textContent = "Installing…";
 
-    window.electronAPI.onRemoteInstallProgress((msg) => {
+    window.electronAPI.onSshInstallProgress((msg) => {
       logEl.textContent += msg;
       wrap.scrollTop = wrap.scrollHeight;
     });
 
-    const result = await window.electronAPI.remoteInstall(payload);
-
+    const result = await window.electronAPI.sshDockerInstall(sshOpts);
     btn.disabled = false;
+
     if (result.ok) {
-      btn.textContent = "Installed! Testing connection…";
-      setTimeout(() => testConnection(), 3000);
+      btn.textContent = "Installed! Connecting…";
+      document.getElementById("install-hint").classList.remove("visible");
+      await doConnect();
     } else {
-      btn.textContent = "Install on Server";
+      btn.textContent = "Install with Docker";
       logEl.textContent += "\n[error] " + (result.error || "Unknown error");
     }
   }
 
-  function doConnect() {
+  async function doConnect() {
     if (mode === "local") {
       window.electronAPI.connectLocal();
-    } else {
-      const url  = _buildUrl(document.getElementById("inp-url").value);
-      const name = document.getElementById("inp-name").value.trim() || _nameFromUrl(url);
-      if (!url) return;
-      window.electronAPI.connectRemote(name, url);
+      return;
+    }
+
+    const sshOpts = _sshOpts();
+    if (!sshOpts.host) return;
+    if (sshOpts.authType === "key" && !sshOpts.keyPath) {
+      _setStatus("Select or browse for a private key first.", "err");
+      return;
+    }
+
+    const remotePort = document.getElementById("ssh-app-port").value.trim() || "7860";
+    const name = document.getElementById("inp-name").value.trim() || sshOpts.host;
+
+    connecting = true;
+    _updateConnectBtn();
+    document.getElementById("install-hint").classList.remove("visible");
+    _setStatus("Connecting via SSH…", "spin");
+
+    try {
+      const status = await window.electronAPI.sshCheckStatus(sshOpts, remotePort);
+      if (!status.ok) {
+        _setStatus(status.error || "SSH connection failed", "err");
+        return;
+      }
+
+      if (!status.morpheusRunning) {
+        _setStatus("Reached the server, but Morpheus isn't running there.", "");
+        document.getElementById("install-hint-text").textContent = status.dockerInstalled
+          ? "Docker is installed. Start Morpheus with one click:"
+          : "Morpheus isn't running on that server yet.";
+        document.getElementById("install-hint").classList.add("visible");
+        return;
+      }
+
+      _setStatus("Morpheus found — opening secure tunnel…", "spin");
+      const tunnel = await window.electronAPI.sshOpenTunnel(sshOpts, remotePort);
+      if (!tunnel.ok) {
+        _setStatus(tunnel.error || "Could not open SSH tunnel", "err");
+        return;
+      }
+
+      _setStatus("Connected via SSH tunnel!", "ok");
+      window.electronAPI.connectSsh(name, sshOpts, remotePort, tunnel.url);
+    } catch (e) {
+      _setStatus(e.message || "Unexpected error", "err");
+    } finally {
+      connecting = false;
+      _updateConnectBtn();
     }
   }
 
-  function _nameFromUrl(url) {
-    try { return new URL(url).hostname; } catch (_) { return url; }
-  }
-
   function _renderSaved() {
-    const remotes = connections.filter(c => c.type === "remote");
+    const remotes = connections.filter(c => c.type === "remote" || c.type === "ssh");
     const section = document.getElementById("saved-section");
     const list    = document.getElementById("saved-list");
     section.style.display = remotes.length ? "" : "none";
@@ -533,18 +501,35 @@
     remotes.forEach(c => {
       const row = document.createElement("div");
       row.className = "saved-item";
+      const subtitle = c.type === "ssh" ? `ssh://${c.username}@${c.host}:${c.port}` : c.url;
       row.innerHTML = `
         <span class="si-icon">🌐</span>
         <div class="si-info">
           <div class="si-name">${_esc(c.name)}</div>
-          <div class="si-url">${_esc(c.url)}</div>
+          <div class="si-url">${_esc(subtitle)}</div>
         </div>
         <button class="si-del" title="Remove" onclick="event.stopPropagation();removeSaved('${_esc(c.id)}')">✕</button>
       `;
       row.addEventListener("click", () => {
-        document.getElementById("inp-url").value = c.url;
-        document.getElementById("inp-name").value = c.name;
         selectMode("remote");
+        document.getElementById("inp-name").value = c.name;
+        if (c.type === "ssh") {
+          document.getElementById("ssh-host").value = c.host;
+          document.getElementById("ssh-port").value = c.port;
+          document.getElementById("ssh-user").value = c.username;
+          document.getElementById("ssh-app-port").value = c.remotePort || 7860;
+          setSshAuthMethod(c.authType || "password");
+          if (c.authType === "key" && c.keyPath) {
+            if (!sshKeys.find(k => k.path === c.keyPath)) sshKeys.unshift({ path: c.keyPath, name: c.keyPath.split(/[\\/]/).pop() });
+            _renderKeySelect();
+            document.getElementById("ssh-key-select").value = c.keyPath;
+          }
+        } else {
+          try {
+            const u = new URL(c.url);
+            document.getElementById("ssh-host").value = u.hostname;
+          } catch (_) {}
+        }
       });
       list.appendChild(row);
     });
@@ -565,19 +550,19 @@
 
   window.electronAPI?.getConnections().then(data => {
     if (data) { connections = data.connections || []; _renderSaved(); }
+    if (data?.last?.type === "ssh") {
+      selectMode("remote");
+      document.getElementById("inp-name").value = data.last.name || "";
+      document.getElementById("ssh-host").value = data.last.host || "";
+      document.getElementById("ssh-port").value = data.last.port || "22";
+      document.getElementById("ssh-user").value = data.last.username || "ubuntu";
+      document.getElementById("ssh-app-port").value = data.last.remotePort || 7860;
+      setSshAuthMethod(data.last.authType || "password");
+    }
   });
 
-  document.getElementById("inp-url").addEventListener("input", () => {
-    testPassed = false;
-    _updateConnectBtn();
-    document.getElementById("test-dot").className = "status-dot";
-    document.getElementById("test-text").textContent = "Enter IP or hostname above";
-    document.getElementById("test-text").className = "status-text";
-    document.getElementById("install-hint").classList.remove("visible");
-  });
-
-  document.getElementById("inp-url").addEventListener("keydown", e => {
-    if (e.key === "Enter") testPassed ? doConnect() : testConnection();
+  document.getElementById("ssh-host").addEventListener("keydown", e => {
+    if (e.key === "Enter") doConnect();
   });
 </script>
 </body>

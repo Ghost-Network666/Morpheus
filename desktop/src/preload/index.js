@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   listSshKeys:             ()    => ipcRenderer.invoke("list-ssh-keys"),
   browseSshKey:            ()    => ipcRenderer.invoke("browse-ssh-key"),
 
+  // ── SSH-first remote connect (check → install → tunnel) ─────────────────────
+  sshCheckStatus:  (sshOpts, remotePort) => ipcRenderer.invoke("ssh-check-status", { sshOpts, remotePort }),
+  sshDockerInstall:(sshOpts)             => ipcRenderer.invoke("ssh-docker-install", { sshOpts }),
+  onSshInstallProgress: (cb) => ipcRenderer.on("ssh-install-progress", (_e, msg) => cb(msg)),
+  sshOpenTunnel:   (sshOpts, remotePort) => ipcRenderer.invoke("ssh-open-tunnel", { sshOpts, remotePort }),
+  onSshTunnelClosed: (cb) => ipcRenderer.on("ssh-tunnel-closed", () => cb()),
+  connectSsh: (name, sshOpts, remotePort, url) => ipcRenderer.send("connect-ssh", { name, sshOpts, remotePort, url }),
+
   // ── Updates ──────────────────────────────────────────────────────────────────
   checkForUpdates:     () => ipcRenderer.send("check-for-updates"),
   installUpdate:       () => ipcRenderer.send("install-update"),
