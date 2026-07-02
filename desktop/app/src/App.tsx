@@ -50,7 +50,7 @@ export function App() {
   const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [pendingSshSession, setPendingSshSession] = useState<{ session_id: string; wsUrl: string; label: string } | null>(null);
 
-  const { theme, sidebarCollapsed, toggleSidebar } = useUIStore();
+  const { theme } = useUIStore();
   const { modules, setModules } = useFeatureStore();
 
   useEffect(() => { applyTheme(theme); }, [theme]);
@@ -171,8 +171,6 @@ export function App() {
             active={view}
             onSelect={setView}
             systemInfo={effectiveSystemInfo}
-            collapsed={sidebarCollapsed}
-            onToggleCollapse={toggleSidebar}
           />
         </ErrorBoundary>
 

@@ -1,9 +1,8 @@
 import {
   MessageSquare, Terminal, Globe, Brain, FileText, ListTodo,
   Calendar, Mail, Folder, Diamond, Shield, BookOpen, Link2,
-  Settings, Server, ChevronLeft, ChevronRight,
+  Settings, Server, Zap,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Tooltip } from "./ui/Tooltip";
 import type { SystemInfo } from "../types";
 
@@ -15,210 +14,143 @@ export type View =
 interface NavItem {
   id: View;
   label: string;
-  Icon: React.ComponentType<{ size?: number; className?: string }>;
+  Icon: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
   moduleKey?: string;
-  group?: "primary" | "knowledge" | "system";
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { id: "chat",        label: "Chat",       Icon: MessageSquare,  group: "primary"   },
-  { id: "terminal",    label: "Terminal",   Icon: Terminal,  moduleKey: "terminal",  group: "primary"   },
-  { id: "ssh",         label: "SSH",        Icon: Server,    moduleKey: "ssh",       group: "primary"   },
-  { id: "notes",       label: "Notes",      Icon: FileText,  moduleKey: "notes",     group: "primary"   },
-  { id: "tasks",       label: "Tasks",      Icon: ListTodo,  moduleKey: "tasks",     group: "primary"   },
-  { id: "calendar",    label: "Calendar",   Icon: Calendar,  moduleKey: "calendar",  group: "primary"   },
-  { id: "research",    label: "Research",   Icon: Globe,     moduleKey: "research",  group: "knowledge" },
-  { id: "rag",         label: "Memory",     Icon: Brain,     moduleKey: "rag",       group: "knowledge" },
-  { id: "documents",   label: "Documents",  Icon: Folder,    moduleKey: "documents", group: "knowledge" },
-  { id: "email",       label: "Email",      Icon: Mail,      moduleKey: "email",     group: "knowledge" },
-  { id: "obsidian",    label: "Obsidian",   Icon: Diamond,   moduleKey: "obsidian",  group: "knowledge" },
-  { id: "vault",       label: "Vault",      Icon: Shield,                            group: "system"    },
-  { id: "cookbook",    label: "Cookbook",   Icon: BookOpen,  moduleKey: "cookbook",  group: "system"    },
-  { id: "connections", label: "Connect",    Icon: Link2,     moduleKey: "connections",group: "system"  },
+const NAV_PRIMARY: NavItem[] = [
+  { id: "chat",      label: "Chat",      Icon: MessageSquare },
+  { id: "terminal",  label: "Terminal",  Icon: Terminal,  moduleKey: "terminal" },
+  { id: "ssh",       label: "SSH",       Icon: Server,    moduleKey: "ssh"      },
+  { id: "notes",     label: "Notes",     Icon: FileText,  moduleKey: "notes"    },
+  { id: "tasks",     label: "Tasks",     Icon: ListTodo,  moduleKey: "tasks"    },
+  { id: "calendar",  label: "Calendar",  Icon: Calendar,  moduleKey: "calendar" },
+];
+
+const NAV_KNOWLEDGE: NavItem[] = [
+  { id: "research",  label: "Research",  Icon: Globe,     moduleKey: "research"  },
+  { id: "rag",       label: "Memory",    Icon: Brain,     moduleKey: "rag"       },
+  { id: "documents", label: "Documents", Icon: Folder,    moduleKey: "documents" },
+  { id: "email",     label: "Email",     Icon: Mail,      moduleKey: "email"     },
+  { id: "obsidian",  label: "Obsidian",  Icon: Diamond,   moduleKey: "obsidian"  },
+];
+
+const NAV_SYSTEM: NavItem[] = [
+  { id: "vault",       label: "Vault",    Icon: Shield                               },
+  { id: "cookbook",    label: "Models",   Icon: BookOpen,  moduleKey: "cookbook"    },
+  { id: "connections", label: "Connect",  Icon: Link2,     moduleKey: "connections" },
 ];
 
 interface SidebarProps {
   active: View;
   onSelect: (view: View) => void;
   systemInfo: SystemInfo | null;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-const SIDEBAR_W = { expanded: 220, collapsed: 56 };
-
-const sidebarVariants = {
-  expanded:  { width: SIDEBAR_W.expanded },
-  collapsed: { width: SIDEBAR_W.collapsed },
-};
-
-export function Sidebar({ active, onSelect, systemInfo, collapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ active, onSelect, systemInfo }: SidebarProps) {
   const modules = systemInfo?.modules ?? {};
+  const enabled = (item: NavItem) => !item.moduleKey || modules[item.moduleKey] !== false;
 
-  const isEnabled = (item: NavItem) => {
-    if (!item.moduleKey) return true;
-    return modules[item.moduleKey] !== false;
-  };
-
-  const grouped = {
-    primary:   NAV_ITEMS.filter((i) => i.group === "primary"   && isEnabled(i)),
-    knowledge: NAV_ITEMS.filter((i) => i.group === "knowledge" && isEnabled(i)),
-    system:    NAV_ITEMS.filter((i) => i.group === "system"    && isEnabled(i)),
-  };
+  const primary   = NAV_PRIMARY.filter(enabled);
+  const knowledge = NAV_KNOWLEDGE.filter(enabled);
+  const system    = NAV_SYSTEM.filter(enabled);
 
   return (
-    <motion.div
-      variants={sidebarVariants}
-      animate={collapsed ? "collapsed" : "expanded"}
-      transition={{ duration: 0.15, ease: "easeOut" }}
-      className="relative flex shrink-0 flex-col glass border-r overflow-hidden"
-      style={{ willChange: "width" }}
-    >
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden py-2">
-        <NavGroup items={grouped.primary}   active={active} collapsed={collapsed} onSelect={onSelect} />
-        <AnimatePresence>
-          {grouped.knowledge.length > 0 && (
-            <NavGroup
-              key="knowledge"
-              items={grouped.knowledge}
-              active={active}
-              collapsed={collapsed}
-              onSelect={onSelect}
-              label="Knowledge"
-            />
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {grouped.system.length > 0 && (
-            <NavGroup
-              key="system"
-              items={grouped.system}
-              active={active}
-              collapsed={collapsed}
-              onSelect={onSelect}
-            />
-          )}
-        </AnimatePresence>
+    <div className="relative flex w-14 shrink-0 flex-col items-center overflow-hidden"
+      style={{ background: "var(--glass-bg)", borderRight: "1px solid var(--glass-border)" }}>
+
+      {/* Logo */}
+      <div className="flex h-12 w-full items-center justify-center shrink-0">
+        <div className="flex h-7 w-7 items-center justify-center rounded-xl"
+          style={{ background: "rgb(var(--color-accent-rgb) / 0.15)" }}>
+          <Zap size={14} className="text-accent" />
+        </div>
       </div>
 
-      <div className="border-t py-1.5 shrink-0" style={{ borderColor: "var(--glass-border)" }}>
-        <NavBtn
-          item={{ id: "settings", label: "Settings", Icon: Settings }}
-          active={active === "settings"}
-          collapsed={collapsed}
-          onClick={() => onSelect("settings")}
-        />
-        <button
-          onClick={onToggleCollapse}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="flex h-8 w-full items-center gap-2 px-3 text-xs text-muted hover:text-text transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight size={13} className="mx-auto" />
-          ) : (
-            <>
-              <ChevronLeft size={13} />
-              <AnimatePresence>
-                <motion.span
-                  key="collapse-label"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.1 }}
-                >
-                  Collapse
-                </motion.span>
-              </AnimatePresence>
-            </>
-          )}
-        </button>
-      </div>
-    </motion.div>
-  );
-}
-
-function NavGroup({
-  items, active, collapsed, onSelect, label,
-}: {
-  items: NavItem[];
-  active: View;
-  collapsed: boolean;
-  onSelect: (v: View) => void;
-  label?: string;
-}) {
-  if (!items.length) return null;
-  return (
-    <div className="px-1.5 py-1">
-      <AnimatePresence>
-        {label && !collapsed && (
-          <motion.p
-            key={`label-${label}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.1 }}
-            className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted/50"
-          >
-            {label}
-          </motion.p>
+      {/* Nav groups */}
+      <div className="flex min-h-0 flex-1 flex-col items-center gap-0.5 overflow-y-auto overflow-x-hidden px-1.5 py-1 w-full">
+        <NavGroup items={primary} active={active} onSelect={onSelect} />
+        {knowledge.length > 0 && (
+          <>
+            <div className="my-1 w-6 shrink-0" style={{ height: 1, background: "var(--glass-border)" }} />
+            <NavGroup items={knowledge} active={active} onSelect={onSelect} />
+          </>
         )}
-      </AnimatePresence>
-      {items.map((item) => (
-        <NavBtn
-          key={item.id}
-          item={item}
-          active={active === item.id}
-          collapsed={collapsed}
-          onClick={() => onSelect(item.id)}
-        />
-      ))}
+        {system.length > 0 && (
+          <>
+            <div className="my-1 w-6 shrink-0" style={{ height: 1, background: "var(--glass-border)" }} />
+            <NavGroup items={system} active={active} onSelect={onSelect} />
+          </>
+        )}
+      </div>
+
+      {/* Settings pinned at bottom */}
+      <div className="flex w-full flex-col items-center px-1.5 pb-2 shrink-0"
+        style={{ borderTop: "1px solid var(--glass-border)" }}>
+        <div className="pt-1.5">
+          <NavIcon
+            item={{ id: "settings", label: "Settings", Icon: Settings }}
+            active={active === "settings"}
+            onSelect={onSelect}
+          />
+        </div>
+      </div>
     </div>
   );
 }
 
-function NavBtn({
-  item, active, collapsed, onClick,
-}: {
+function NavGroup({ items, active, onSelect }: {
+  items: NavItem[];
+  active: View;
+  onSelect: (v: View) => void;
+}) {
+  return (
+    <>
+      {items.map((item) => (
+        <NavIcon key={item.id} item={item} active={active === item.id} onSelect={onSelect} />
+      ))}
+    </>
+  );
+}
+
+function NavIcon({ item, active, onSelect }: {
   item: NavItem;
   active: boolean;
-  collapsed: boolean;
-  onClick: () => void;
+  onSelect: (v: View) => void;
 }) {
-  const button = (
-    <button
-      onClick={onClick}
-      className={`
-        relative flex h-8 w-full items-center gap-2.5 rounded-lg px-2
-        text-xs font-medium transition-colors duration-100
-        ${active
-          ? "bg-white/[0.08] text-text active-glow"
-          : "text-muted hover:bg-white/[0.05] hover:text-text"
-        }
-      `}
-    >
-      <item.Icon
-        size={15}
-        className={`shrink-0 ${active ? "text-accent" : ""}`}
-      />
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.span
-            key={`label-${item.id}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.1 }}
-            className="truncate"
-          >
-            {item.label}
-          </motion.span>
+  return (
+    <Tooltip content={item.label} side="right">
+      <button
+        onClick={() => onSelect(item.id)}
+        className="relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-100"
+        style={{
+          background: active ? "rgb(var(--color-accent-rgb) / 0.15)" : "transparent",
+        }}
+        onMouseEnter={(e) => {
+          if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
+        }}
+        onMouseLeave={(e) => {
+          if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
+        }}
+      >
+        <item.Icon
+          size={16}
+          className={active ? "text-accent transition-colors" : "text-muted transition-colors"}
+        />
+        {active && (
+          <span
+            className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r"
+            style={{
+              width: 3,
+              height: 16,
+              background: "rgb(var(--color-accent-rgb))",
+              boxShadow: "2px 0 8px rgb(var(--color-accent-rgb) / 0.6)",
+            }}
+          />
         )}
-      </AnimatePresence>
-    </button>
+      </button>
+    </Tooltip>
   );
-
-  if (collapsed) {
-    return <Tooltip content={item.label} side="right">{button}</Tooltip>;
-  }
-  return button;
 }

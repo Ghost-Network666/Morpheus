@@ -34,7 +34,7 @@ export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
       theme: "linear-dark",
-      sidebarCollapsed: false,
+      sidebarCollapsed: true,
       settingsSearch: "",
       activeSettingsCategory: "ai",
 
