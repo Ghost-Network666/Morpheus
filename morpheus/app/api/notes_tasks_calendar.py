@@ -243,27 +243,40 @@ async def delete_event(event_id: int, db: AsyncSession = Depends(get_db), user: 
 @calendar_router.get("/export.ics")
 async def export_ics(db: AsyncSession = Depends(get_db), user: User = Depends(require_user)):
     from fastapi.responses import Response
-    from icalendar import Calendar, Event
     import uuid as _uuid
 
     result = await db.execute(select(CalendarEvent).where(CalendarEvent.user_id == user.id))
     events = result.scalars().all()
 
-    cal = Calendar()
-    cal.add("prodid", "-//Morpheus//EN")
-    cal.add("version", "2.0")
+    def _fmt_dt(dt_val) -> str:
+        if dt_val is None:
+            return ""
+        if isinstance(dt_val, str):
+            return dt_val.replace("-", "").replace(":", "").replace(" ", "T").split(".")[0]
+        return dt_val.strftime("%Y%m%dT%H%M%S")
 
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Morpheus//EN",
+        "CALSCALE:GREGORIAN",
+    ]
     for ev in events:
-        ie = Event()
-        ie.add("uid", ev.ics_uid or str(_uuid.uuid4()))
-        ie.add("summary", ev.summary)
-        ie.add("dtstart", ev.start)
-        ie.add("dtend", ev.end)
+        uid = ev.ics_uid or str(_uuid.uuid4())
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{uid}",
+            f"SUMMARY:{ev.summary}",
+            f"DTSTART:{_fmt_dt(ev.start)}",
+        ]
+        if ev.end:
+            lines.append(f"DTEND:{_fmt_dt(ev.end)}")
         if ev.description:
-            ie.add("description", ev.description)
-        cal.add_component(ie)
+            lines.append(f"DESCRIPTION:{ev.description.replace(chr(10), '\\n')}")
+        lines.append("END:VEVENT")
+    lines.append("END:VCALENDAR")
 
-    return Response(cal.to_ical(), media_type="text/calendar")
+    return Response("\r\n".join(lines) + "\r\n", media_type="text/calendar")
 
 
 def _event_out(e: CalendarEvent):
