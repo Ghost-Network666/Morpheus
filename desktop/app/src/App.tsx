@@ -7,25 +7,28 @@ import { CommandPalette } from "./components/CommandPalette";
 import { UpdateBanner } from "./components/UpdateBanner";
 import { useUIStore, applyTheme } from "./store/useUIStore";
 import { useFeatureStore } from "./store/useFeatureStore";
+import { useToast } from "./components/ui/Toast";
 import { api } from "./lib/api";
 import type { SystemInfo } from "./types";
 
 // Lazy-load heavy pages to keep initial bundle smaller
 const ChatPage     = lazy(() => import("./pages/ChatPage").then((m) => ({ default: m.ChatPage })));
+const AgentPage    = lazy(() => import("./pages/AgentPage").then((m) => ({ default: m.AgentPage })));
 const TerminalPage = lazy(() => import("./pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
 const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 const ResearchPage = lazy(() => import("./pages/ResearchPage").then((m) => ({ default: m.ResearchPage })));
 const RagPage      = lazy(() => import("./pages/RagPage").then((m) => ({ default: m.RagPage })));
 
-import { SshPage }       from "./pages/SshPage";
-import { NotesPage }     from "./pages/NotesPage";
-import { TasksPage }     from "./pages/TasksPage";
-import { CalendarPage }  from "./pages/CalendarPage";
-import { EmailPage }     from "./pages/EmailPage";
-import { DocumentsPage } from "./pages/DocumentsPage";
-import { ObsidianPage }  from "./pages/ObsidianPage";
-import { VaultPage }     from "./pages/VaultPage";
-import { CookbookPage }  from "./pages/CookbookPage";
+import { SshPage }         from "./pages/SshPage";
+import { NotesPage }       from "./pages/NotesPage";
+import { TasksPage }       from "./pages/TasksPage";
+import { CalendarPage }    from "./pages/CalendarPage";
+import { EmailPage }       from "./pages/EmailPage";
+import { DocumentsPage }   from "./pages/DocumentsPage";
+import { ObsidianPage }    from "./pages/ObsidianPage";
+import { VaultPage }       from "./pages/VaultPage";
+import { CookbookPage }    from "./pages/CookbookPage";
+import { ConnectionsPage } from "./pages/ConnectionsPage";
 
 function PageFallback() {
   return (
@@ -52,6 +55,7 @@ export function App() {
 
   const { theme } = useUIStore();
   const { modules, setModules } = useFeatureStore();
+  const toast = useToast();
 
   useEffect(() => { applyTheme(theme); }, [theme]);
 
@@ -76,6 +80,19 @@ export function App() {
     return () => { unsub1?.(); };
   }, []);
 
+  // Notify the user if a remote SSH tunnel drops unexpectedly mid-session
+  useEffect(() => {
+    const ea = (window as any).electronAPI;
+    if (!ea) return;
+    const unsub = ea.onSshTunnelClosed?.(() => {
+      toast("SSH tunnel closed", {
+        type: "error",
+        description: "The connection to your remote server was lost. Reconnect from the connection screen.",
+      });
+    });
+    return () => { unsub?.(); };
+  }, [toast]);
+
   // Open SSH terminal from external events
   useEffect(() => {
     const handler = (e: Event) => {
@@ -85,6 +102,16 @@ export function App() {
     };
     window.addEventListener("open-ssh-terminal", handler);
     return () => window.removeEventListener("open-ssh-terminal", handler);
+  }, []);
+
+  // Generic cross-page navigation (e.g. Connections → Settings integrations tab)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { view: target } = (e as CustomEvent).detail ?? {};
+      if (target) setView(target);
+    };
+    window.addEventListener("navigate-view", handler);
+    return () => window.removeEventListener("navigate-view", handler);
   }, []);
 
   // Command palette keyboard shortcut (Ctrl+P / Cmd+P)
@@ -136,6 +163,7 @@ export function App() {
     return (
       <Suspense fallback={<PageFallback />}>
         {view === "chat"        && <ErrorBoundary name="Chat"><ChatPage systemInfo={systemInfo} /></ErrorBoundary>}
+        {view === "agent"       && <ErrorBoundary name="Agent"><AgentPage systemInfo={systemInfo} /></ErrorBoundary>}
         {view === "terminal"    && <ErrorBoundary name="Terminal"><TerminalPage sshSession={pendingSshSession} onSshSessionConsumed={() => setPendingSshSession(null)} /></ErrorBoundary>}
         {view === "ssh"         && <ErrorBoundary name="SSH"><SshPage /></ErrorBoundary>}
         {view === "research"    && <ErrorBoundary name="Research"><ResearchPage /></ErrorBoundary>}
@@ -148,7 +176,7 @@ export function App() {
         {view === "obsidian"    && <ErrorBoundary name="Obsidian"><ObsidianPage /></ErrorBoundary>}
         {view === "vault"       && <ErrorBoundary name="Vault"><VaultPage /></ErrorBoundary>}
         {view === "cookbook"    && <ErrorBoundary name="Cookbook"><CookbookPage /></ErrorBoundary>}
-        {view === "connections" && <ConnectionsView />}
+        {view === "connections" && <ErrorBoundary name="Connections"><ConnectionsPage /></ErrorBoundary>}
         {view === "settings"    && <ErrorBoundary name="Settings"><SettingsPage /></ErrorBoundary>}
       </Suspense>
     );
@@ -196,18 +224,3 @@ export function App() {
   );
 }
 
-function ConnectionsView() {
-  return (
-    <div className="flex flex-1 flex-col">
-      <div className="border-b px-6 py-3" style={{ borderColor: "var(--glass-border)" }}>
-        <h1 className="text-sm font-semibold text-text">Connections</h1>
-      </div>
-      <div className="flex flex-1 items-center justify-center text-muted">
-        <div className="text-center">
-          <p className="text-sm mb-1">External integrations</p>
-          <p className="text-xs opacity-60">Configure GitHub, Notion, Linear, and Slack in Settings → Integrations</p>
-        </div>
-      </div>
-    </div>
-  );
-}

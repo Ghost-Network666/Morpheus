@@ -115,16 +115,10 @@ export function RagPage() {
           </div>
         </div>
 
-        {/* Ultra thin context status gauge (guideline 3) */}
-        <div className="flex items-center gap-2 text-[10px] text-muted min-w-[180px]">
-          <span>Context</span>
-          <div className="flex-1 h-1.5 rounded bg-border/60 overflow-hidden">
-            <div
-              className="h-1.5 bg-accent/70 transition-all duration-150"
-              style={{ width: `${Math.min(92, 40 + (totalChunks % 60))}%` }}
-            />
-          </div>
-          <span className="tabular-nums">{totalChunks} chunks</span>
+        <div className="flex items-center gap-3 text-[10px] text-muted">
+          <span className="tabular-nums">{docs.length} document{docs.length === 1 ? "" : "s"}</span>
+          <span className="opacity-40">·</span>
+          <span className="tabular-nums">{totalChunks} chunk{totalChunks === 1 ? "" : "s"}</span>
         </div>
 
         <button
@@ -215,16 +209,10 @@ export function RagPage() {
                     className="group rounded border border-border bg-bg/70 hover:border-accent/30 flex flex-col overflow-hidden"
                     style={{ padding: '6px 8px' }}
                   >
-                    {/* Chunk header — vector state + weights */}
-                    <div className="flex items-center justify-between text-[10px] mb-1 text-muted">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-accent/80">#{chunk.chunk_index}</span>
-                        <span>{chunk.tokens} tok</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="rounded bg-accent/10 px-1 py-px text-[9px] text-accent/80">embedded</span>
-                        <span className="text-[9px] opacity-60">384d</span>
-                      </div>
+                    {/* Chunk header */}
+                    <div className="flex items-center gap-1.5 text-[10px] mb-1 text-muted">
+                      <span className="font-mono text-accent/80">#{chunk.chunk_index}</span>
+                      <span>{chunk.tokens} tok</span>
                     </div>
 
                     {/* Isolated chunk content */}

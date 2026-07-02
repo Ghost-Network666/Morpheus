@@ -3,7 +3,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import {
   MessageSquare, Terminal, Server, FileText, ListTodo,
   Calendar, Globe, Brain, Folder, Mail, Diamond, Shield,
-  BookOpen, Link2, Settings, ArrowRight, Search,
+  BookOpen, Link2, Settings, ArrowRight, Search, Bot,
 } from "lucide-react";
 import type { View } from "./Sidebar";
 
@@ -17,6 +17,7 @@ interface PaletteAction {
 
 const ACTIONS: PaletteAction[] = [
   { id: "go-chat",        label: "Go to Chat",        group: "Navigate", view: "chat",        Icon: MessageSquare },
+  { id: "go-agent",      label: "Go to Agent Mode",   group: "Navigate", view: "agent",       Icon: Bot           },
   { id: "go-terminal",   label: "Go to Terminal",     group: "Navigate", view: "terminal",    Icon: Terminal      },
   { id: "go-ssh",        label: "Go to SSH",          group: "Navigate", view: "ssh",         Icon: Server        },
   { id: "go-notes",      label: "Go to Notes",        group: "Navigate", view: "notes",       Icon: FileText      },

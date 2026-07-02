@@ -1,13 +1,13 @@
 import {
   MessageSquare, Terminal, Globe, Brain, FileText, ListTodo,
   Calendar, Mail, Folder, Diamond, Shield, BookOpen, Link2,
-  Settings, Server, Zap,
+  Settings, Server, Bot,
 } from "lucide-react";
 import { Tooltip } from "./ui/Tooltip";
 import type { SystemInfo } from "../types";
 
 export type View =
-  | "chat" | "terminal" | "ssh" | "research" | "rag"
+  | "chat" | "agent" | "terminal" | "ssh" | "research" | "rag"
   | "notes" | "tasks" | "calendar" | "email" | "documents"
   | "obsidian" | "vault" | "cookbook" | "connections" | "settings";
 
@@ -20,6 +20,7 @@ interface NavItem {
 
 const NAV_PRIMARY: NavItem[] = [
   { id: "chat",      label: "Chat",      Icon: MessageSquare },
+  { id: "agent",     label: "Agent",     Icon: Bot,       moduleKey: "agent"    },
   { id: "terminal",  label: "Terminal",  Icon: Terminal,  moduleKey: "terminal" },
   { id: "ssh",       label: "SSH",       Icon: Server,    moduleKey: "ssh"      },
   { id: "notes",     label: "Notes",     Icon: FileText,  moduleKey: "notes"    },
@@ -45,8 +46,6 @@ interface SidebarProps {
   active: View;
   onSelect: (view: View) => void;
   systemInfo: SystemInfo | null;
-  collapsed?: boolean;
-  onToggleCollapse?: () => void;
 }
 
 export function Sidebar({ active, onSelect, systemInfo }: SidebarProps) {
@@ -61,11 +60,17 @@ export function Sidebar({ active, onSelect, systemInfo }: SidebarProps) {
     <div className="relative flex w-14 shrink-0 flex-col items-center overflow-hidden"
       style={{ background: "var(--glass-bg)", borderRight: "1px solid var(--glass-border)" }}>
 
-      {/* Logo */}
+      {/* Brand mark */}
       <div className="flex h-12 w-full items-center justify-center shrink-0">
-        <div className="flex h-7 w-7 items-center justify-center rounded-xl"
-          style={{ background: "rgb(var(--color-accent-rgb) / 0.15)" }}>
-          <Zap size={14} className="text-accent" />
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-xl text-[13px] font-bold"
+          style={{
+            background: "rgb(var(--color-accent-rgb) / 0.15)",
+            color: "rgb(var(--color-accent-rgb))",
+          }}
+          title="Morpheus"
+        >
+          M
         </div>
       </div>
 
@@ -124,16 +129,11 @@ function NavIcon({ item, active, onSelect }: {
     <Tooltip content={item.label} side="right">
       <button
         onClick={() => onSelect(item.id)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-100"
-        style={{
-          background: active ? "rgb(var(--color-accent-rgb) / 0.15)" : "transparent",
-        }}
-        onMouseEnter={(e) => {
-          if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.06)";
-        }}
-        onMouseLeave={(e) => {
-          if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
-        }}
+        aria-label={item.label}
+        aria-current={active ? "page" : undefined}
+        className={`relative flex h-9 w-9 items-center justify-center rounded-xl transition-colors duration-100 ${
+          active ? "bg-[rgb(var(--color-accent-rgb)/0.15)]" : "hover:bg-white/[0.06]"
+        }`}
       >
         <item.Icon
           size={16}

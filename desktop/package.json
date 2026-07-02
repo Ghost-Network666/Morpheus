@@ -30,7 +30,6 @@
     "postinstall": "electron-builder install-app-deps"
   },
   "dependencies": {
-    "electron-log": "^5.4.4",
     "electron-updater": "^6.3.9",
     "ssh2": "1.17.0"
   },

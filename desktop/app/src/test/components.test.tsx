@@ -1,7 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { TitleBar } from "../components/TitleBar";
 import { Sidebar } from "../components/Sidebar";
+import { TooltipProvider } from "../components/ui/Tooltip";
+
+// Sidebar nav icons use Radix Tooltip, which must live under a TooltipProvider
+// (the real app wraps the whole tree in one — see main.tsx).
+const renderWithProviders = (ui: ReactElement) =>
+  render(<TooltipProvider>{ui}</TooltipProvider>);
 
 const mockSystemInfo = {
   version: "1.0.0",
@@ -27,32 +34,28 @@ const defaultSidebarProps = {
   active: "chat" as const,
   onSelect: vi.fn(),
   systemInfo: null,
-  collapsed: false,
-  onToggleCollapse: vi.fn(),
 };
 
 describe("Sidebar", () => {
   it("renders Chat nav item", () => {
-    render(<Sidebar {...defaultSidebarProps} />);
-    expect(screen.getByText("Chat")).toBeInTheDocument();
+    renderWithProviders(<Sidebar {...defaultSidebarProps} />);
+    expect(screen.getByLabelText("Chat")).toBeInTheDocument();
   });
 
   it("renders Settings nav item", () => {
-    render(<Sidebar {...defaultSidebarProps} />);
-    expect(screen.getByText("Settings")).toBeInTheDocument();
+    renderWithProviders(<Sidebar {...defaultSidebarProps} />);
+    expect(screen.getByLabelText("Settings")).toBeInTheDocument();
   });
 
   it("calls onSelect when a nav item is clicked", () => {
     const onSelect = vi.fn();
-    render(<Sidebar {...defaultSidebarProps} onSelect={onSelect} />);
-    fireEvent.click(screen.getByText("Chat"));
+    renderWithProviders(<Sidebar {...defaultSidebarProps} onSelect={onSelect} />);
+    fireEvent.click(screen.getByLabelText("Chat"));
     expect(onSelect).toHaveBeenCalledWith("chat");
   });
 
-  it("applies active styling to the active view", () => {
-    render(<Sidebar {...defaultSidebarProps} />);
-    const chatBtn = screen.getByText("Chat").closest("button");
-    // Active button receives glass bg styling
-    expect(chatBtn?.className).toContain("bg-white");
+  it("marks the active view with aria-current", () => {
+    renderWithProviders(<Sidebar {...defaultSidebarProps} active="chat" />);
+    expect(screen.getByLabelText("Chat")).toHaveAttribute("aria-current", "page");
   });
 });

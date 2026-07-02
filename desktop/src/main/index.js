@@ -217,6 +217,38 @@ function _preload() {
   return path.join(__dirname, "../preload/index.js");
 }
 
+// Turns a silent blank window (renderer failed to load, or the GPU/render
+// process crashed — both seen on some Intel Macs) into a visible, actionable
+// error instead of an empty frame the user can't diagnose.
+function _attachLoadDiagnostics(win, label) {
+  const wc = win.webContents;
+  wc.on("did-fail-load", (_e, errorCode, errorDescription, validatedURL) => {
+    // -3 is ERR_ABORTED, fired for benign in-app navigations/redirects.
+    if (errorCode === -3) return;
+    const message = `The ${label} screen failed to load (${errorDescription || errorCode}).`;
+    console.error(`[window:${label}] did-fail-load ${errorCode} ${errorDescription} ${validatedURL}`);
+    if (!win.isDestroyed()) win.show();
+    dialog.showMessageBox(win, {
+      type: "error",
+      title: "Morpheus — load error",
+      message,
+      detail: "This usually means the app bundle is missing or corrupted. Reinstalling the latest release should fix it.",
+      buttons: ["Quit", "Retry"],
+      defaultId: 1,
+    }).then(({ response }) => {
+      if (response === 1 && !win.isDestroyed()) wc.reload();
+      else _quit();
+    });
+  });
+  wc.on("render-process-gone", (_e, details) => {
+    console.error(`[window:${label}] render-process-gone: ${details.reason}`);
+    if (details.reason !== "clean-exit" && !win.isDestroyed()) {
+      win.show();
+      wc.reload();
+    }
+  });
+}
+
 function _openIntro() {
   introWindow = new BrowserWindow({
     width: 740, height: 540,
@@ -236,6 +268,7 @@ function _openWizard() {
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: { preload: _preload(), contextIsolation: true, nodeIntegration: false },
   });
+  _attachLoadDiagnostics(wizardWindow, "setup");
   wizardWindow.loadFile(
     path.join(__dirname, "../../app/dist/index.html"),
     { query: { wizard: "1" } },
@@ -251,6 +284,7 @@ function _openConnect(fromIntro = false) {
     frame: false, resizable: false, center: true,
     webPreferences: { preload: _preload(), contextIsolation: true, nodeIntegration: false },
   });
+  _attachLoadDiagnostics(connectWindow, "connect");
   connectWindow.loadFile(path.join(__dirname, "../renderer/connect.html"));
   connectWindow.webContents.once("did-finish-load", () => {
     if (!connectWindow.isDestroyed()) {
@@ -295,11 +329,16 @@ function _openMain(url) {
     },
   });
 
+  _attachLoadDiagnostics(mainWindow, "main");
   mainWindow.loadFile(path.join(__dirname, "../../app/dist/index.html"));
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
     _refreshTrayMenu();
   });
+  // Safety net: if ready-to-show never fires (rare compositor stalls seen on
+  // some Intel Macs), force the window visible so the user isn't left staring
+  // at nothing.
+  setTimeout(() => { if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) mainWindow.show(); }, 4000);
   mainWindow.on("closed", () => { mainWindow = null; });
   mainWindow.on("maximize", () => mainWindow?.webContents.send("window-state-changed", { maximized: true }));
   mainWindow.on("unmaximize", () => mainWindow?.webContents.send("window-state-changed", { maximized: false }));

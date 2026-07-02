@@ -1,9 +1,14 @@
 import json
+import logging
 import os
 import re
+
+import httpx
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.settings import UserSetting
@@ -235,6 +240,103 @@ async def toggle_module(module: str, db: AsyncSession = Depends(get_db), user: U
     set_override(attr, new_val)
     await db.commit()
     return {"module": key, "enabled": new_val}
+
+
+INTEGRATIONS = {"github", "notion", "linear", "slack"}
+
+
+@router.post("/integrations/test/{provider}")
+async def test_integration(provider: str, user: User = Depends(require_user)):
+    """
+    Pings the real provider API with the currently-saved credential and
+    reports back whether it works. This is a lightweight verification step
+    (personal access token / webhook URL), not an OAuth connection — Morpheus
+    is a self-hosted single-user app, so there's no OAuth app/redirect URI to
+    register these providers against.
+    """
+    if provider not in INTEGRATIONS:
+        raise HTTPException(404, f"Unknown integration: {provider}")
+
+    try:
+        if provider == "github":
+            return await _test_github()
+        if provider == "notion":
+            return await _test_notion()
+        if provider == "linear":
+            return await _test_linear()
+        if provider == "slack":
+            return await _test_slack()
+    except httpx.RequestError as e:
+        logger.warning("Integration test failed for %s: %s", provider, e)
+        return {"ok": False, "detail": f"Could not reach {provider}: {e}"}
+
+
+async def _test_github():
+    token = app_settings.github_token
+    if not token:
+        return {"ok": False, "detail": "No GitHub token configured"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            "https://api.github.com/user",
+            headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+        )
+    if r.status_code == 200:
+        data = r.json()
+        return {"ok": True, "detail": f"Connected as {data.get('login', 'unknown')}"}
+    return {"ok": False, "detail": f"GitHub returned {r.status_code}: {_error_message(r)}"}
+
+
+async def _test_notion():
+    token = app_settings.notion_token
+    if not token:
+        return {"ok": False, "detail": "No Notion token configured"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.get(
+            "https://api.notion.com/v1/users/me",
+            headers={"Authorization": f"Bearer {token}", "Notion-Version": "2022-06-28"},
+        )
+    if r.status_code == 200:
+        data = r.json()
+        name = data.get("name") or data.get("bot", {}).get("owner", {}).get("type", "workspace")
+        return {"ok": True, "detail": f"Connected as {name}"}
+    return {"ok": False, "detail": f"Notion returned {r.status_code}: {_error_message(r)}"}
+
+
+async def _test_linear():
+    key = app_settings.linear_api_key
+    if not key:
+        return {"ok": False, "detail": "No Linear API key configured"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(
+            "https://api.linear.app/graphql",
+            headers={"Authorization": key, "Content-Type": "application/json"},
+            json={"query": "{ viewer { name email } }"},
+        )
+    if r.status_code == 200:
+        data = r.json()
+        if "errors" in data:
+            return {"ok": False, "detail": data["errors"][0].get("message", "Linear API error")}
+        viewer = data.get("data", {}).get("viewer", {})
+        return {"ok": True, "detail": f"Connected as {viewer.get('name', 'unknown')}"}
+    return {"ok": False, "detail": f"Linear returned {r.status_code}: {_error_message(r)}"}
+
+
+async def _test_slack():
+    webhook = app_settings.slack_webhook
+    if not webhook:
+        return {"ok": False, "detail": "No Slack webhook configured"}
+    async with httpx.AsyncClient(timeout=10) as client:
+        r = await client.post(webhook, json={"text": "✅ Morpheus test message — your Slack integration is working."})
+    if r.status_code == 200:
+        return {"ok": True, "detail": "Test message sent to Slack"}
+    return {"ok": False, "detail": f"Slack returned {r.status_code}: {r.text[:200]}"}
+
+
+def _error_message(response: httpx.Response) -> str:
+    try:
+        return response.json().get("message", response.text[:200])
+    except Exception:
+        return response.text[:200]
 
 
 @router.get("/env-status")

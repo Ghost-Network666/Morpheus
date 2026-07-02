@@ -78,27 +78,31 @@ export function ResearchPage() {
     }
   }
 
+  // Matches the literal progress markers app/core/research_engine.py actually
+  // yields (see the "**Searching the web...**" / "Reading content..." /
+  // "**Fetching full content...**" / "Synthesising N sources..." / "*Sources:"
+  // lines it writes) rather than guessing at arbitrary wording — those markers
+  // are fixed strings this codebase controls on both ends, not model output.
   function updatePipeline(text: string) {
-    const lower = text.toLowerCase();
     let newActive = activeStep;
     const newCompleted: number[] = [];
 
-    if (lower.includes("searching the web") || lower.includes("querying")) {
+    if (text.includes("**Searching the web...**")) {
       newActive = 0;
     }
-    if (lower.includes("found") || lower.includes("sources found")) {
+    if (text.includes("Reading content...")) {
       newCompleted.push(0);
       newActive = 1;
     }
-    if (lower.includes("reading") || lower.includes("fetching full") || lower.includes("read:")) {
+    if (text.includes("**Fetching full content...**")) {
+      newCompleted.push(0, 1);
+      newActive = 1;
+    }
+    if (/Synthesi[sz]ing \d+ sources/.test(text)) {
       newCompleted.push(0, 1);
       newActive = 2;
     }
-    if (lower.includes("synthesi") || lower.includes("generating")) {
-      newCompleted.push(0, 1);
-      newActive = 2;
-    }
-    if (lower.includes("report") && lower.includes("sources:")) {
+    if (/\n\*Sources:/.test(text)) {
       newCompleted.push(0, 1, 2);
       newActive = 3;
     }
@@ -106,8 +110,10 @@ export function ResearchPage() {
     if (newActive !== activeStep) setActiveStep(newActive);
     if (JSON.stringify(newCompleted) !== JSON.stringify(completed)) setCompleted(newCompleted);
 
-    // crude failure detection
-    if (lower.includes("error") || lower.includes("failed") || lower.includes("no search results")) {
+    // Only the backend's own defined failure markers — not a generic
+    // "error"/"failed" substring match, which would false-positive on a
+    // synthesized report that legitimately discusses failures.
+    if (text.includes("No search results found") || text.includes("Could not fetch any page content")) {
       setStepError(text.slice(-280));
     }
   }

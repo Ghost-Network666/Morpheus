@@ -89,6 +89,13 @@ export const api = {
       onChunk,
       signal,
     ),
+  runAgent: (
+    message: string,
+    opts: { model?: string; provider?: string; ssh_profile_id?: number; memory_source?: string },
+    onChunk: (text: string) => void,
+    signal?: AbortSignal,
+  ) =>
+    streamReq("/api/chat/agent", { message, ...opts }, onChunk, signal),
 
   // ── Settings ───────────────────────────────────────────────────────────────
   getSettings: () => req<AppSettings>("/api/settings"),
@@ -100,6 +107,11 @@ export const api = {
   toggleModule: (module: string) =>
     req<{ module: string; enabled: boolean }>(
       `/api/settings/toggle/${module}`,
+      { method: "POST" },
+    ),
+  testIntegration: (provider: "github" | "notion" | "linear" | "slack") =>
+    req<{ ok: boolean; detail: string }>(
+      `/api/settings/integrations/test/${provider}`,
       { method: "POST" },
     ),
 
@@ -131,11 +143,6 @@ export const api = {
   // ── Terminal ───────────────────────────────────────────────────────────────
   startTerminal: (cols = 80, rows = 24) =>
     req<{ session_id: string }>(`/api/terminal/local?cols=${cols}&rows=${rows}`),
-  resizeTerminal: (id: string, cols: number, rows: number) =>
-    req<{ ok: boolean }>(`/api/terminal/${id}/resize`, {
-      method: "POST",
-      body: JSON.stringify({ cols, rows }),
-    }),
   closeTerminal: (id: string) =>
     req<{ ok: boolean }>(`/api/terminal/${id}`, { method: "DELETE" }),
   async terminalWsUrl(sessionId: string): Promise<string> {

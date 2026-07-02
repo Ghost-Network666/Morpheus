@@ -20,12 +20,9 @@ export const THEMES: { id: ThemeId; label: string; accent: string; preview: stri
 
 interface UIState {
   theme: ThemeId;
-  sidebarCollapsed: boolean;
   settingsSearch: string;
   activeSettingsCategory: string;
   setTheme: (theme: ThemeId) => void;
-  toggleSidebar: () => void;
-  setSidebarCollapsed: (v: boolean) => void;
   setSettingsSearch: (q: string) => void;
   setActiveSettingsCategory: (c: string) => void;
 }
@@ -34,7 +31,6 @@ export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
       theme: "linear-dark",
-      sidebarCollapsed: true,
       settingsSearch: "",
       activeSettingsCategory: "ai",
 
@@ -42,8 +38,6 @@ export const useUIStore = create<UIState>()(
         document.documentElement.setAttribute("data-theme", theme);
         set({ theme });
       },
-      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
-      setSidebarCollapsed: (v) => set({ sidebarCollapsed: v }),
       setSettingsSearch: (q) => set({ settingsSearch: q }),
       setActiveSettingsCategory: (c) => set({ activeSettingsCategory: c }),
     }),
@@ -51,7 +45,6 @@ export const useUIStore = create<UIState>()(
       name: "morpheus-ui",
       partialState: (state: UIState) => ({
         theme: state.theme,
-        sidebarCollapsed: state.sidebarCollapsed,
       }),
     } as any,
   ),
