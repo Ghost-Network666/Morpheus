@@ -161,6 +161,25 @@ function listSshHosts() {
   return [...configHosts, ...knownHosts];
 }
 
+// Wraps a command so it runs as root regardless of which account the SSH
+// session logged in as — Docker installs and the Morpheus containers need
+// full (root) permissions, and non-root accounts usually can't even read
+// /root, so elevation has to happen before the remote script starts, not
+// inside it. Uses sudo with the SSH password when we have one (never
+// persisted — it only lives in memory for this one exec call); otherwise
+// falls back to passwordless sudo, and gives a clear error if neither works.
+function _wrapWithSudo(cmd, sshOpts) {
+  const escaped = cmd.replace(/'/g, `'\\''`);
+  const havePassword = sshOpts.authType === "password" && sshOpts.password;
+  const elevate = havePassword
+    ? `sudo -S -p '' bash -c '${escaped}'`
+    : `sudo -n bash -c '${escaped}' || { echo '[error] This account needs passwordless sudo (or connect as root) for automated installs.' >&2; exit 1; }`;
+  return {
+    command: `if [ "$(id -u)" = "0" ]; then ${cmd}; else ${elevate}; fi`,
+    stdinPassword: havePassword ? sshOpts.password : null,
+  };
+}
+
 function _runInstall(sshOpts, installCmd, onProgress, onDone) {
   const conn = new Client();
   let connectOpts;
@@ -171,15 +190,18 @@ function _runInstall(sshOpts, installCmd, onProgress, onDone) {
     return;
   }
 
+  const { command, stdinPassword } = _wrapWithSudo(installCmd, sshOpts);
+
   conn
     .on("ready", () => {
       onProgress("[ssh] Connected — starting installation…\n");
-      conn.exec(installCmd, (err, stream) => {
+      conn.exec(command, (err, stream) => {
         if (err) {
           conn.end();
           onDone("SSH exec error: " + err.message);
           return;
         }
+        if (stdinPassword) stream.stdin.end(stdinPassword + "\n");
         stream
           .on("close", (code) => {
             conn.end();
