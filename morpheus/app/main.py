@@ -100,6 +100,8 @@ def create_app() -> FastAPI:
     if settings.module_ssh:
         from app.api.ssh import router as ssh_router
         app.include_router(ssh_router)
+        from app.api.remote import router as remote_router
+        app.include_router(remote_router)
 
     if settings.module_cookbook:
         from app.api.cookbook import router as cookbook_router

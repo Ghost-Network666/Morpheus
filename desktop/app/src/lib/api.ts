@@ -233,6 +233,22 @@ export const api = {
   deleteVaultItem: (key: string) =>
     req<{ ok: boolean }>(`/api/connections/vault/${encodeURIComponent(key)}`, { method: "DELETE" }),
 
+  // ── Remote server management ───────────────────────────────────────────────
+  discoverServers: () => req<any[]>("/api/connections/discover"),
+  probeRemote: (profileId: number) => req<any>(`/api/remote/${profileId}/probe`),
+  installRemote: (profileId: number, opts?: { port?: number; data_dir?: string }) =>
+    req<any>(`/api/remote/${profileId}/install`, {
+      method: "POST",
+      body: JSON.stringify(opts ?? {}),
+    }),
+  startTunnel: (profileId: number, remotePort?: number) =>
+    req<{ ok: boolean; local_port: number; url: string }>(`/api/remote/${profileId}/tunnel`, {
+      method: "POST",
+      body: JSON.stringify({ remote_port: remotePort ?? 7860 }),
+    }),
+  stopTunnel: (profileId: number) =>
+    req<{ ok: boolean }>(`/api/remote/${profileId}/tunnel`, { method: "DELETE" }),
+
   // ── Cookbook (Ollama models) ────────────────────────────────────────────────
   listModels: () => req<{ models: OllamaModel[] }>("/api/cookbook/models"),
   pullModel: (name: string, onChunk: (text: string) => void) =>
