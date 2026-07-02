@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.15.3",
     "fs-extra": "^11.1.1"
   }
 }
