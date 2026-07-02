@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,9 +9,16 @@ from app.models.vault import VaultItem
 from app.models.user import User
 from app.api.auth import require_user
 from app.utils.vault import encrypt, decrypt
-from app.utils.backup import create_backup, restore_backup
+from app.utils.backup import create_backup, restore_backup, BackupError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/connections", tags=["connections"])
+
+
+def _require_admin(user: User) -> None:
+    if not user.is_admin:
+        raise HTTPException(403, "Admin only")
 
 
 # ── Status ───────────────────────────────────────────────────────────────────
@@ -85,17 +94,23 @@ async def delete_vault_item(key: str, db: AsyncSession = Depends(get_db), user: 
 
 @router.post("/backup")
 async def backup(user: User = Depends(require_user)):
-    if not user.is_admin:
-        raise HTTPException(403, "Admin only")
-    path = create_backup()
+    _require_admin(user)
+    try:
+        path = create_backup()
+    except BackupError as e:
+        logger.error("Backup failed: %s", e)
+        raise HTTPException(500, str(e))
     return {"path": path, "ok": True}
 
 
 @router.post("/restore")
 async def restore(request: Request, user: User = Depends(require_user)):
-    if not user.is_admin:
-        raise HTTPException(403, "Admin only")
+    _require_admin(user)
     body = await request.json()
     backup_path = body.get("path", "")
-    ok = restore_backup(backup_path)
-    return {"ok": ok}
+    try:
+        restore_backup(backup_path)
+    except BackupError as e:
+        logger.error("Restore failed: %s", e)
+        raise HTTPException(400, str(e))
+    return {"ok": True}

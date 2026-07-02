@@ -28,6 +28,7 @@ pywinpty==2.0.14; sys_platform == "win32"
 
 # AI / LLM
 openai==2.44.0
+anthropic==0.115.1
 
 # RAG
 chromadb==1.5.9

@@ -286,6 +286,7 @@ function _openMain(url) {
     minWidth: 900, minHeight: 600,
     title: "Morpheus",
     show: false,
+    frame: false,
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     webPreferences: {
       preload: _preload(),
@@ -300,6 +301,8 @@ function _openMain(url) {
     _refreshTrayMenu();
   });
   mainWindow.on("closed", () => { mainWindow = null; });
+  mainWindow.on("maximize", () => mainWindow?.webContents.send("window-state-changed", { maximized: true }));
+  mainWindow.on("unmaximize", () => mainWindow?.webContents.send("window-state-changed", { maximized: false }));
 
   mainWindow.webContents.setWindowOpenHandler(({ url: openUrl }) => {
     shell.openExternal(openUrl);
@@ -470,6 +473,30 @@ ipcMain.on("go-to-connect", () => {
 ipcMain.on("quit-app", () => _quit());
 
 ipcMain.on("open-external", (_e, url) => shell.openExternal(url));
+
+// ── Custom title bar window controls ──────────────────────────────────────
+// mainWindow runs frame:false on every platform (a native OS frame here
+// would duplicate the app's own title bar), so minimize/maximize/close have
+// to be driven from the renderer's custom TitleBar via IPC instead of the
+// native chrome buttons.
+ipcMain.on("window-minimize", (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.minimize();
+});
+
+ipcMain.on("window-maximize-toggle", (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return;
+  if (win.isMaximized()) win.unmaximize();
+  else win.maximize();
+});
+
+ipcMain.on("window-close", (event) => {
+  BrowserWindow.fromWebContents(event.sender)?.close();
+});
+
+ipcMain.handle("window-is-maximized", (event) => {
+  return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false;
+});
 
 ipcMain.handle("test-remote-url", async (_e, url) => {
   try {

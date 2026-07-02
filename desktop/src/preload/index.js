@@ -66,6 +66,17 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // ── Main app (bundled native UI) ─────────────────────────────────────────────
   getApiBase: () => ipcRenderer.invoke("get-api-base"),
 
+  // ── Custom title bar window controls (frame:false on every platform) ────────
+  windowMinimize:      () => ipcRenderer.send("window-minimize"),
+  windowMaximizeToggle:() => ipcRenderer.send("window-maximize-toggle"),
+  windowClose:         () => ipcRenderer.send("window-close"),
+  isWindowMaximized:   () => ipcRenderer.invoke("window-is-maximized"),
+  onWindowStateChanged:(cb) => {
+    const fn = (_e, state) => cb(state);
+    ipcRenderer.on("window-state-changed", fn);
+    return () => ipcRenderer.removeListener("window-state-changed", fn);
+  },
+
   // ── Setup wizard ──────────────────────────────────────────────────────────────
   checkOllama:        ()           => ipcRenderer.invoke("check-ollama"),
   installOllama:      ()           => ipcRenderer.invoke("install-ollama"),
