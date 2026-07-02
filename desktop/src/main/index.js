@@ -537,6 +537,11 @@ ipcMain.handle("list-ssh-keys", () => {
   return listSshKeys();
 });
 
+ipcMain.handle("list-ssh-hosts", () => {
+  const { listSshHosts } = require("./remote-install");
+  return listSshHosts();
+});
+
 // ── SSH-first remote connect flow ───────────────────────────────────────
 // 1. ssh-check-status: SSH in, see if Docker is available and if Morpheus is
 //    already reachable on the remote's loopback interface.

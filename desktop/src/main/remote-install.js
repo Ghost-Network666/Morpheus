@@ -62,6 +62,105 @@ function listSshKeys() {
   return keys;
 }
 
+// Parses ~/.ssh/config for Host entries the user has already set up (the
+// same file `ssh myserver` reads from), so known servers can be offered as
+// one-click choices instead of making everyone retype IPs/usernames.
+// Wildcard/pattern hosts ("*", "github.com" via Match blocks, etc.) are skipped.
+function _parseSshConfig() {
+  const configPath = path.join(SSH_DIR, "config");
+  let text;
+  try {
+    text = fs.readFileSync(configPath, "utf8");
+  } catch (_) {
+    return [];
+  }
+
+  const hosts = [];
+  let current = null;
+
+  const flush = () => {
+    if (current && current.alias && !current.alias.includes("*") && !current.alias.includes("?")) {
+      hosts.push({
+        alias: current.alias,
+        host: current.hostName || current.alias,
+        port: current.port || "22",
+        username: current.user || os.userInfo().username,
+        identityFile: current.identityFile || null,
+      });
+    }
+    current = null;
+  };
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.replace(/#.*$/, "").trim();
+    if (!line) continue;
+    const [, key, value] = line.match(/^(\S+)\s+(.+)$/) || [];
+    if (!key) continue;
+    const k = key.toLowerCase();
+
+    if (k === "host") {
+      flush();
+      // A "Host" line can list multiple space-separated aliases — only take the first.
+      current = { alias: value.trim().split(/\s+/)[0] };
+    } else if (!current) {
+      continue; // settings before the first Host line apply globally — not a listable server
+    } else if (k === "hostname") {
+      current.hostName = value.trim();
+    } else if (k === "user") {
+      current.user = value.trim();
+    } else if (k === "port") {
+      current.port = value.trim();
+    } else if (k === "identityfile") {
+      current.identityFile = value.trim().replace(/^~/, os.homedir());
+    }
+  }
+  flush();
+
+  return hosts;
+}
+
+// Falls back to plaintext (non-hashed) entries in ~/.ssh/known_hosts for
+// servers the user has SSHed into but that aren't in ~/.ssh/config.
+function _parseKnownHosts(excludeHosts) {
+  const knownHostsPath = path.join(SSH_DIR, "known_hosts");
+  let text;
+  try {
+    text = fs.readFileSync(knownHostsPath, "utf8");
+  } catch (_) {
+    return [];
+  }
+
+  const seen = new Set(excludeHosts);
+  const hosts = [];
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("|")) continue; // skip hashed entries
+    const field = trimmed.split(/\s+/)[0];
+    if (!field) continue;
+    for (let entry of field.split(",")) {
+      entry = entry.replace(/^\[/, "").replace(/\]:\d+$/, "");
+      if (!entry || seen.has(entry)) continue;
+      seen.add(entry);
+      hosts.push({
+        alias: entry,
+        host: entry,
+        port: "22",
+        username: os.userInfo().username,
+        identityFile: null,
+      });
+    }
+  }
+  return hosts;
+}
+
+// Combined list of servers already known to this machine's SSH client:
+// ~/.ssh/config entries first (richest metadata), then bare known_hosts entries.
+function listSshHosts() {
+  const configHosts = _parseSshConfig();
+  const knownHosts = _parseKnownHosts(configHosts.map((h) => h.host));
+  return [...configHosts, ...knownHosts];
+}
+
 function _runInstall(sshOpts, installCmd, onProgress, onDone) {
   const conn = new Client();
   let connectOpts;
@@ -202,4 +301,4 @@ function openTunnel(sshOpts, remotePort, onReady, onError, onClose) {
     .connect(connectOpts);
 }
 
-module.exports = { remoteInstall, dockerInstall, checkRemoteStatus, openTunnel, listSshKeys };
+module.exports = { remoteInstall, dockerInstall, checkRemoteStatus, openTunnel, listSshKeys, listSshHosts };

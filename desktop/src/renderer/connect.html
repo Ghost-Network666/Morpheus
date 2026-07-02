@@ -159,6 +159,20 @@
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
 
+  .known-hosts-section { margin-bottom: 20px; }
+  .known-hosts-section .saved-label { margin-top: 0; }
+  .known-hosts-section .saved-list { max-height: 190px; overflow-y: auto; margin-bottom: 10px; }
+  .btn-manual-toggle {
+    width: 100%; padding: 9px 12px; border-radius: 8px; border: 1.5px dashed #313244;
+    background: transparent; color: #7c7fa0; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: border-color .15s, color .15s;
+  }
+  .btn-manual-toggle:hover { border-color: #cba6f7; color: #cba6f7; }
+  .btn-manual-toggle.active { border-style: solid; border-color: #cba6f7; color: #cba6f7; background: #211e30; }
+
+  #manual-entry-fields { display: none; }
+  #manual-entry-fields.visible { display: block; }
+
   .auth-toggle { display: flex; gap: 8px; margin-bottom: 12px; }
   .auth-toggle button {
     flex: 1; padding: 8px 10px; border-radius: 7px; border: 1.5px solid #313244;
@@ -233,6 +247,13 @@
   </div>
 
   <div class="remote-form" id="remote-form">
+    <div class="known-hosts-section" id="known-hosts-section" style="display:none">
+      <div class="saved-label">Known servers (from ~/.ssh)</div>
+      <div class="saved-list" id="known-hosts-list"></div>
+      <button type="button" class="btn-manual-toggle" id="manual-toggle" onclick="toggleManualEntry()">Enter server manually</button>
+    </div>
+
+    <div id="manual-entry-fields">
     <div class="field">
       <label for="inp-name">Connection name</label>
       <input type="text" id="inp-name" placeholder="Home Server">
@@ -293,6 +314,7 @@
       <div class="status-dot" id="test-dot"></div>
       <span class="status-text" id="test-text">Enter server details above and connect</span>
     </div>
+    </div>
 
     <!-- Shown when SSH reaches the server but Morpheus isn't running there yet -->
     <div class="install-hint" id="install-hint">
@@ -322,13 +344,77 @@
   let connections = [];
   let sshAuthType = "password";
   let sshKeys = [];
+  let knownHosts = [];
   let connecting = false;
+  let manualEntryForced = false; // true once the user explicitly asks for the manual form
 
   window.electronAPI?.getVersion().then(v => {
     if (v) document.getElementById("ver").textContent = "v" + v;
   });
 
   window.electronAPI?.listSshKeys().then(keys => { sshKeys = keys || []; _renderKeySelect(); });
+  window.electronAPI?.listSshHosts().then(hosts => { knownHosts = hosts || []; _renderKnownHosts(); });
+
+  function _renderKnownHosts() {
+    const section = document.getElementById("known-hosts-section");
+    const list = document.getElementById("known-hosts-list");
+    if (!knownHosts.length) {
+      section.style.display = "none";
+      _setManualEntryVisible(true);
+      return;
+    }
+    section.style.display = "";
+    list.innerHTML = "";
+    knownHosts.forEach((h, i) => {
+      const row = document.createElement("div");
+      row.className = "saved-item";
+      row.innerHTML = `
+        <span class="si-icon">🖥️</span>
+        <div class="si-info">
+          <div class="si-name">${_esc(h.alias)}</div>
+          <div class="si-url">${_esc(h.username)}@${_esc(h.host)}:${_esc(h.port)}${h.identityFile ? " · key" : ""}</div>
+        </div>
+      `;
+      row.addEventListener("click", () => selectKnownHost(i));
+      list.appendChild(row);
+    });
+    _setManualEntryVisible(manualEntryForced);
+  }
+
+  function selectKnownHost(i) {
+    const h = knownHosts[i];
+    if (!h) return;
+    document.getElementById("inp-name").value = h.alias;
+    document.getElementById("ssh-host").value = h.host;
+    document.getElementById("ssh-port").value = h.port;
+    document.getElementById("ssh-user").value = h.username;
+    if (h.identityFile) {
+      setSshAuthMethod("key");
+      if (!sshKeys.find(k => k.path === h.identityFile)) {
+        sshKeys.unshift({ path: h.identityFile, name: h.identityFile.split(/[\\/]/).pop() });
+      }
+      _renderKeySelect();
+      document.getElementById("ssh-key-select").value = h.identityFile;
+    } else {
+      setSshAuthMethod("password");
+    }
+    _setManualEntryVisible(true);
+    document.getElementById(sshAuthType === "key" ? "ssh-key-pass" : "ssh-pass").focus();
+  }
+
+  function toggleManualEntry() {
+    manualEntryForced = !document.getElementById("manual-entry-fields").classList.contains("visible");
+    _setManualEntryVisible(manualEntryForced);
+  }
+
+  function _setManualEntryVisible(visible) {
+    document.getElementById("manual-entry-fields").classList.toggle("visible", visible);
+    const btn = document.getElementById("manual-toggle");
+    if (btn) {
+      btn.textContent = visible ? "Hide manual entry" : "Enter server manually";
+      btn.classList.toggle("active", visible);
+    }
+  }
 
   function selectMode(m) {
     mode = m;
@@ -530,6 +616,7 @@
             document.getElementById("ssh-host").value = u.hostname;
           } catch (_) {}
         }
+        _setManualEntryVisible(true);
       });
       list.appendChild(row);
     });
@@ -558,6 +645,7 @@
       document.getElementById("ssh-user").value = data.last.username || "ubuntu";
       document.getElementById("ssh-app-port").value = data.last.remotePort || 7860;
       setSshAuthMethod(data.last.authType || "password");
+      _setManualEntryVisible(true);
     }
   });
 
