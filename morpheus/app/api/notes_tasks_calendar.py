@@ -272,7 +272,8 @@ async def export_ics(db: AsyncSession = Depends(get_db), user: User = Depends(re
         if ev.end:
             lines.append(f"DTEND:{_fmt_dt(ev.end)}")
         if ev.description:
-            lines.append(f"DESCRIPTION:{ev.description.replace(chr(10), '\\n')}")
+            desc = ev.description.replace("\n", "\\n")
+            lines.append(f"DESCRIPTION:{desc}")
         lines.append("END:VEVENT")
     lines.append("END:VCALENDAR")
 
