@@ -23,7 +23,7 @@ export function ObsidianPage() {
       const result = await api.listObsidianFiles(q);
       setFiles(result);
     } catch (e: any) {
-      if (String(e).includes("vault") || String(e).includes("404")) {
+      if (String(e).toLowerCase().includes("vault") || String(e).includes("404") || String(e).includes("400")) {
         setNoVault(true);
       } else {
         setError(String(e));
